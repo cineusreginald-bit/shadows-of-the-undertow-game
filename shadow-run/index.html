@@ -162,6 +162,8 @@ h2 em.red { color: var(--red); }
 .banner { position: fixed; left: 50%; bottom: calc(9vh + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px); width: min(calc(100% - 32px), 640px); display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: 18px; align-items: center;
   opacity: 0; pointer-events: none; transition: opacity .9s ease, transform 1.2s cubic-bezier(.2,.7,.2,1); z-index: 4; }
 .banner.on { opacity: 1; transform: translate(-50%, 0); }
+body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .toast { opacity: 0 !important; transition: opacity .35s ease; }
+.hud, .controls { transition: opacity .6s ease; }
 .banner .thumb { margin: 0; aspect-ratio: 16 / 9; border: 2px solid var(--fg); background: #000; overflow: hidden; transform: rotate(-.8deg); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
 .banner .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .btext { display: grid; gap: 6px; min-width: 0; text-shadow: 0 2px 16px #000; }
@@ -4874,7 +4876,7 @@ h2 em.red { color: var(--red); }
   const SHORE_Z = -262;
   const ISLAND = { x: 0, z: -322, r: 14.5 };          // across the water: the mask, the last fight, the door
   const MASK = { x: 4, z: -321 }, DOOR = { x: 0, z: -333.5 };
-  const DASH_CD = 1.8, ROCK_HOLD = 2.8, ROCK_TOP = .2, LEAP = 5.8;
+  const DASH_CD = 1.8, ROCK_HOLD = 2.2, ROCK_TOP = .2, LEAP = 5.0;
   const WALK = 4.7, RUN = 6.3, BURN = 7.0, PIT_R = 5.5, PIT_REFILL = 60, PIT_REACH = 2.2, KINDLING = 40;
   const torchR = (f) => f <= 0 ? 0 : 1.5 + 4.3 * Math.sqrt(f / 100);
 
@@ -5152,8 +5154,8 @@ h2 em.red { color: var(--red); }
       for (let k = 0; k < 4; k++) { dummy.position.set(gx + (rnd() - .5) * .3, .2, gz + (rnd() - .5) * .3); dummy.rotation.set((rnd() - .5) * .7, rnd() * 3, (rnd() - .5) * .7); dummy.scale.set(1, .6 + rnd() * .9, 1); dummy.updateMatrix(); grass.setMatrixAt(i + k, dummy.matrix); } } scene.add(grass); }
   // ---- the crossing: stones in the water that sink under him
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x33373e, roughness: .8, emissive: 0x0b1118, flatShading: true });
-  const ROCKS = [[-2, -266.2, 1.45], [2, -269.5, 1.35], [-1.5, -273, 1.35], [-6, -275.5, 1.3], [-7.5, -280.5, 1.3], [-3.5, -284, 1.3], [1.5, -285.5, 1.35], [5.5, -289, 1.3], [4, -294, 1.3], [0, -298, 1.35], [-.3, -303.7, 1.4],      // the way across
-    [5.5, -273.8, 1.3], [7.5, -279, 1.25], [.5, -278.3, 1.3], [-4.5, -289.5, 1.3], [-6, -294.8, 1.25], [7.5, -298.5, 1.25]]                                                                                                              // stones that lead nowhere
+  const PATH_N = 17;      // the first 17 stones are the way across, in order; the other 14 lead nowhere
+  const ROCKS = [[2.05, -265.83, 1.28], [-1.38, -268.56, 1.25], [-5.67, -267.79, 1.34], [-6.94, -271.93, 1.23], [-3.89, -275.22, 1.32], [-1.67, -279.32, 1.29], [3.09, -279.71, 1.23], [7.65, -281.22, 1.31], [7.78, -285.65, 1.23], [3.33, -286.35, 1.3], [2.24, -290.57, 1.23], [-2.26, -290.64, 1.24], [-3.35, -294.82, 1.3], [-8.17, -295.03, 1.37], [-9.22, -299.6, 1.24], [-6.42, -303.27, 1.26], [-5.78, -307.91, 1.33], [0.44, -296.96, 1.39], [0.19, -301.51, 1.32], [3.71, -304.12, 1.29], [-9.14, -275.55, 1.4], [-9.0, -279.85, 1.23], [8.89, -290.37, 1.37], [-8.68, -284.61, 1.27], [0.81, -272.44, 1.25], [-3.03, -283.72, 1.24], [4.78, -298.82, 1.28], [9.13, -294.86, 1.37], [9.07, -300.38, 1.25], [5.21, -273.77, 1.32], [9.32, -275.7, 1.34]]                                                                                                              // stones that lead nowhere
     .map(([x, z, r]) => { const geo = new THREE.CylinderGeometry(r * .93, r * 1.28, .8, 12, 2); { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), px = a.getX(i), pz = a.getZ(i), n = 1 + Math.sin(px * 5.1 + z) * .06 + Math.cos(pz * 4.3 + x) * .06; a.setX(i, px * n); a.setZ(i, pz * n); if (y < .39) a.setY(i, y + Math.sin(px * 3 + pz * 2) * .05); } geo.computeVertexNormals(); }
       const m = new THREE.Mesh(geo, rockMat); m.position.set(x, -.2, z); m.rotation.y = rnd() * 3; scene.add(m);
       const foam = new THREE.Mesh(new THREE.RingGeometry(r * 1.22, r * 1.42, 28), new THREE.MeshBasicMaterial({ color: 0x9fc4e8, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false })); foam.rotation.x = -Math.PI / 2; foam.position.y = .1; m.add(foam); return { x, z, r, m, t: 0, sunk: 0 }; });
@@ -5242,7 +5244,7 @@ h2 em.red { color: var(--red); }
   function audioTick(dt) { if (!actx) return; const id = CHAPTERS[S.ch].id, play = S.mode === "play" || S.mode === "cut" || S.mode === "caught", won = S.mode === "won" || (id === "true" && S.wState === "dead");
     const fight = id === "duel" || id === "berserk" || id === "cross" || (id === "true" && !won), nearWater = S.z < SHORE_Z + 14;
     bed("m_night", play && !fight && !won && S.ch > 0 ? .3 : play && S.ch === 0 ? .16 : 0, dt, 4); bed("m_chase", play && fight ? .34 : 0, dt, 3); bed("m_dawn", won ? .4 : 0, dt, 4);
-    bed("wind", play ? (won ? .05 : .2) : 0, dt, 1.5); bed("fire", play && S.hasTorch && S.fuel > 0 && !S.hasMask ? .3 + .1 * (S.fuel / 100) : 0, dt, 1.2);
+    bed("wind", play ? (won ? .03 : .11) : 0, dt, 1.5); bed("fire", play && S.hasTorch && S.fuel > 0 && !S.hasMask ? .3 + .1 * (S.fuel / 100) : 0, dt, 1.2);
     bed("whisper", play && id === "duel" ? .55 : 0, dt, 2); bed("lap", play && nearWater && !won ? .32 : 0, dt, 1); bed("deep", play && id === "cross" && S.wState === "under" ? .3 : 0, dt, 2);
     // far off, now and then, it howls
     if (play && S.ch > 0 && !fight && !won && (S.howlT = (S.howlT === undefined ? 9 : S.howlT) - dt) <= 0) { S.howlT = 24 + Math.random() * 18; sfx(Math.random() < .5 ? "howl" : "howl2", .22); } }
@@ -5316,8 +5318,8 @@ h2 em.red { color: var(--red); }
     const c = CHAPTERS[i];
     $("toast").style.opacity = 0; toastT = 0; sfx("boom", .5);
     $("bannerImg").src = IMGS[c.img]; $("bannerImg").alt = c.note; $("bannerLabel").textContent = c.label; $("bannerTitle").innerHTML = c.title; $("bannerNote").textContent = c.note;
-    $("bars").classList.add("on"); $("banner").classList.add("on");
-    clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { $("banner").classList.remove("on"); $("bars").classList.remove("on"); }, 4200);
+    $("bars").classList.add("on"); $("banner").classList.add("on"); document.body.classList.add("titling");
+    clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { $("banner").classList.remove("on"); $("bars").classList.remove("on"); document.body.classList.remove("titling"); }, 4200);
   }
   function play() {
     S.mode = "play"; $("hud").hidden = false; if (isTouch) setPad(true);
@@ -5501,7 +5503,7 @@ h2 em.red { color: var(--red); }
       const on = !air && overWater ? ROCKS.find((r) => r.sunk <= 0 && Math.hypot(S.x - r.x, S.z - r.z) < r.r + .12) || null : null;
       for (const r of ROCKS) {
         if (r.sunk > 0) { r.sunk -= dt; if (r.sunk <= 0) r.t = 0; }
-        else if (r === on && playing) { if (r.t < ROCK_HOLD - .9 && r.t + dt >= ROCK_HOLD - .9) sfx("crumble", 1); r.t += dt; if (r.t > ROCK_HOLD) { r.sunk = 2.4; sfx("sink", .8) || noise(.5, .5, 300); burst(r.x, .2, r.z, 16, 0x9fc4e8, 3); } }
+        else if (r === on && playing) { if (r.t < ROCK_HOLD - .9 && r.t + dt >= ROCK_HOLD - .9) sfx("crumble", 1); r.t += dt * (S.wState === "under" && Math.hypot(S.wx - r.x, S.wz - r.z) < 2.6 ? 1.6 : 1);   /* the wolf beneath a stone drags it down sooner */  if (r.t > ROCK_HOLD) { r.sunk = 2.4; sfx("sink", .8) || noise(.5, .5, 300); burst(r.x, .2, r.z, 16, 0x9fc4e8, 3); } }
         else r.t = Math.max(0, r.t - dt * 2);
         const down = r.sunk > 0 ? Math.min(1, (2.4 - r.sunk) * 3, r.sunk * 1.5) : 0, shake = r.sunk <= 0 && r.t > ROCK_HOLD * .5 ? r.t / ROCK_HOLD * .06 : 0;
         r.m.position.set(r.x + Math.sin(t * 47 + r.z) * shake, -.2 - down * 1.1 - (r.t > ROCK_HOLD * .5 && r.sunk <= 0 ? (r.t / ROCK_HOLD - .5) * .16 : 0), r.z + Math.cos(t * 41 + r.x) * shake);
@@ -6087,7 +6089,7 @@ h2 em.red { color: var(--red); }
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
   function frame(now) { requestAnimationFrame(frame); if (paused || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, camera, scene, huts, ROCKS, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  window.__game = { S, camera, scene, huts, ROCKS, PATH_N, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
