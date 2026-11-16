@@ -4971,13 +4971,19 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   for (let i = 0; i < 8; i++) {
     const g = new THREE.Group(), w = 2.4 + rnd() * 1.2; let z = -24 - i * 30 - rnd() * 8; const x = (i % 2 ? 1 : -1) * (4 + rnd() * 4);
     if (inShrine(x, z, 4)) z -= 26;
-    for (const [px, pz] of [[-w / 2, -w / 2], [w / 2, -w / 2], [-w / 2, w / 2], [w / 2, w / 2]]) { const post = new THREE.Mesh(new THREE.BoxGeometry(.18, 2.2, .18), hutMat); post.position.set(px, 1.1, pz); post.rotation.z = (rnd() - .5) * .2; g.add(post); }
-    const wl = new THREE.Mesh(new THREE.BoxGeometry(w, 1.2 + rnd(), .14), hutMat); wl.position.set(0, .7, -w / 2); g.add(wl);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(w * .85, 1.4, 4, 1, true), hutMat); roof.position.y = 2.6; roof.rotation.y = Math.PI / 4; roof.rotation.z = .35; g.add(roof);
+    const ry = rnd() * 6.28, cs = Math.cos(ry), sn = Math.sin(ry), side = w * .78;
+    for (const sx of [-1, 1]) { for (const [dz, r0, y0] of [[-.45, 1.0, .75], [.5, .9, .65], [0, .7, 1.75]]) { const b = new THREE.Mesh(new THREE.DodecahedronGeometry(r0 * (.9 + rnd() * .25), 0), rubbleMat); b.position.set(sx * (side + (y0 > 1 ? -.25 : rnd() * .2)), y0, dz * w * .7); b.scale.y = 1.25; b.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); b.castShadow = b.receiveShadow = true; g.add(b); }
+      const lx = sx * (side + .15); circles.push({ x: x + cs * lx, z: z - sn * lx, r: .95 }); }
+    for (let k = 0; k < 3; k++) { const slab = new THREE.Mesh(new THREE.DodecahedronGeometry(w * (.62 - k * .12), 0), rubbleMat); slab.scale.set(1.5 - k * .2, .32, 1.15); slab.position.set((rnd() - .5) * .5, 2.5 + k * .28, (rnd() - .5) * .5); slab.rotation.y = rnd() * 3; slab.rotation.z = (rnd() - .5) * .16; slab.castShadow = true; g.add(slab); }
     const em = new THREE.Sprite(flameMat.clone()); em.position.set(0, .6, 0); em.scale.set(2.4, 1.4, 1); em.material.opacity = .5; g.add(em);
-    g.position.set(x, 0, z); g.rotation.y = rnd() * 6.28; scene.add(g); huts.push({ x, z, r: w * 1.15, em });
+    g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); huts.push({ x, z, r: w * .95, em });
   }
 
+  // --- standing water on the path: it shines under the torch, and he slides on it
+  const puddles = []; { const pm = new THREE.MeshStandardMaterial({ color: 0x0b1320, roughness: .06, metalness: .85, transparent: true, opacity: .92 });
+    for (let i = 0; i < 18; i++) { const z = -22 - i * 13 - rnd() * 6, x = (rnd() - .5) * 11, rx = 1.3 + rnd() * 1.5, rz = 1.0 + rnd() * 1.3; if (z < SHORE_Z + 8 || inShrine(x, z, 5) || huts.some((h) => Math.hypot(h.x - x, h.z - z) < h.r + 3)) continue;
+      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 20), pm); m.rotation.x = -Math.PI / 2; m.scale.set(rx, rz, 1); m.position.set(x, .025, z); m.receiveShadow = true; scene.add(m);
+      const m2 = new THREE.Mesh(new THREE.CircleGeometry(1, 14), pm); m2.rotation.x = -Math.PI / 2; m2.scale.set(rx * .55, rz * .6, 1); m2.position.set(x + rx * .7, .024, z + rz * .45); scene.add(m2); puddles.push({ x, z, rx, rz }); } }
   // --- the burning post where the torch waits
   const postMesh = new THREE.Mesh(new THREE.CylinderGeometry(.14, .18, 2.2, 8), new THREE.MeshStandardMaterial({ map: barkTex, color: 0x8a7a70 })); postMesh.position.set(POST.x, 1.1, POST.z); scene.add(postMesh); circles.push({ x: POST.x, z: POST.z, r: .3 });
   const postFlame = new THREE.Sprite(fireMat.clone()); postFlame.position.set(POST.x, 2.5, POST.z); postFlame.scale.set(1.4, 2, 1); scene.add(postFlame);
@@ -5223,7 +5229,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const doorSpill = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 6), new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); doorSpill.rotation.x = -Math.PI / 2; doorSpill.position.set(DOOR.x, .12, DOOR.z + 3.2); scene.add(doorSpill);
   const doorLight = new THREE.PointLight(0xfff0d0, 0, 16, 2); doorLight.position.set(DOOR.x, 2, DOOR.z + 1.5); scene.add(doorLight);
   // first light: when the mask goes on, the dark burns off
-    const cNight = new THREE.Color(FOG), cDawn = new THREE.Color(0xb3b5b8), cFurN = new THREE.Color(0x040405), cFurD = new THREE.Color(0x2e2823), cHemiN = new THREE.Color(0x2a2c3a), cHemiD = new THREE.Color(0xe4ecf4), cGndN = new THREE.Color(0x0a0505), cGndD = new THREE.Color(0x7a6a5a), cWatN = new THREE.Color(0x0a2740), cWatD = new THREE.Color(0x4c5860), cMoonN = new THREE.Color(0x7f9cd6), cMoonD = new THREE.Color(0xffe6c4);
+    const cNight = new THREE.Color(FOG), cDawn = new THREE.Color(0xd9853f), cFurN = new THREE.Color(0x040405), cFurD = new THREE.Color(0x2e2823), cHemiN = new THREE.Color(0x2a2c3a), cHemiD = new THREE.Color(0xffd6a0), cGndN = new THREE.Color(0x0a0505), cGndD = new THREE.Color(0x8a5a36), cWatN = new THREE.Color(0x0a2740), cWatD = new THREE.Color(0x8a5f44), cMoonN = new THREE.Color(0x7f9cd6), cMoonD = new THREE.Color(0xffb061);
   function applyDawn() {
     const k = S.dawn; scene.background.copy(cNight).lerp(cDawn, k); scene.fog.color.copy(scene.background); scene.fog.near = 14 + k * 20; scene.fog.far = 34 + k * 60;
     hemi.intensity = .3 + k * .22; hemi.color.copy(cHemiN).lerp(cHemiD, k); hemi.groundColor.copy(cGndN).lerp(cGndD, k); moon.color.copy(cMoonN).lerp(cMoonD, k); moon.intensity = .36 + k * .34; if (bloom) bloom.strength = .55 - .3 * k;
@@ -5281,7 +5287,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     }
     if (id !== "cell") { S.chained = false; chain.visible = false; } else { chain.visible = true; S.snapT = -1; S.pullT = 0; }
     S.unlock = i >= 3; S.staggerCd = 0;
-    Object.assign(S, { maskT: 0, maskUp: 0, maskRising: false, maskShown: false, sh: null, hide: null, hideT: 0, darkT: 0, growlT: 0, fallT: 0, leap: null, onLand: true, biteT: 0, landed: false, safe: null, hasMask: id === "true", doorOpen: false, doorK: 0, emergeT: 0, wHitCd: 0, deadT: 0 }); S.dawn = S.dawnTarget = id === "true" ? 1 : 0;
+    Object.assign(S, { svx: 0, svz: 0, inPud: false, maskT: 0, maskUp: 0, maskRising: false, maskShown: false, sh: null, hide: null, hideT: 0, darkT: 0, growlT: 0, fallT: 0, leap: null, onLand: true, biteT: 0, landed: false, safe: null, hasMask: id === "true", doorOpen: false, doorK: 0, emergeT: 0, wHitCd: 0, deadT: 0 }); S.dawn = S.dawnTarget = id === "true" ? 1 : 0;
     ROCKS.forEach((r) => { r.t = 0; r.sunk = 0; }); wisps.forEach((w) => killWisp(w, true)); S.spillT = 5; wolf.rotation.z = 0; $("white").style.opacity = 0;
     if (id === "cross") {
       Object.assign(S, { x: 0, z: SHORE_Z + 4, heading: 0, hasTorch: true, hasSpear: true, fuel: 100, hp: 3, wx: 0, wz: SHORE_Z + 17, wState: "chase", wT: 2.5 });
@@ -5487,6 +5493,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (S.dodge > 0) { S.dodge -= dt; vx = S.dvx * 21; vz = S.dvz * 21; }
     if (S.strike > .2 && S.dodge <= 0 && S.knock <= 0) { const [fx, fz] = facing(); vx += fx * 6; vz += fz * 6; }   // the thrust carries him forward
     if (S.knock > 0) { S.knock -= dt; vx = S.kx * 9; vz = S.kz * 9; }
+    { const pud = playing && !S.leap && S.dodge <= 0 && puddles.find((q) => ((S.x - q.x) / q.rx) ** 2 + ((S.z - q.z) / q.rz) ** 2 < 1);
+      if (pud) { if (!S.inPud) { S.inPud = true; sfx("sink", .3, 1.8); burst(S.x, .1, S.z, 8, 0x6f8aa8, 2); } const k = Math.min(1, dt * 1.5); S.svx += (vx * 1.18 - S.svx) * k; S.svz += (vz * 1.18 - S.svz) * k; vx = S.svx; vz = S.svz; }      // his feet go out from under him: slow to turn, slow to stop
+      else { S.inPud = false; S.svx = vx; S.svz = vz; } }
     S.x += vx * dt; S.z += vz * dt;
     [S.x, S.z] = collide(S.x, S.z, .3);
     S.x = Math.max(-HALF_W - (id === "cell" ? 0 : 0), Math.min(HALF_W, S.x));
@@ -5837,10 +5846,10 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       }
     }
     // the wolf in the water, coming out of it, and dying
-    { const spillId = id === "torch" || id === "spear" || id === "duel", wd = Math.hypot(S.x - S.wx, S.z - S.wz);
+    { const spillId = id === "torch" || id === "spear" || id === "duel" || (id === "true" && S.wState !== "dead"), wd = Math.hypot(S.x - S.wx, S.z - S.wz);
       const can = playing && spillId && wolf.visible && !S.hide && !S.chained && wd < 15 && wd > 3 && ["edge", "circle", "recover"].includes(S.wState);
       if (can) S.spillT -= dt;
-      if (can && S.spillT <= 0) { S.spillT = id === "duel" ? 8 : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
+      if (can && S.spillT <= 0) { S.spillT = id === "duel" ? 8 : id === "true" ? 6.5 : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
         for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
         sfx("whoosh", .7) || noise(.45, .5, 220, true); burst(S.wx, .5, S.wz, 16, 0x2a1418, 3); }
       const [fcx, fcz] = facing();
@@ -5862,7 +5871,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (S.dawn !== S.dawnTarget) S.dawn = Math.min(S.dawnTarget, S.dawn + dt * .45);
     applyDawn(); if (id === "mask" || id === "true") wolf.scale.setScalar(1.08 - .2 * S.dawn);
     { const mk = CHAPTERS[S.ch].id; if (mk === "mask" && S.mode === "play" && !S.hasMask) { S.maskT = (S.maskT || 0) + dt;
-        if (S.maskT > MASK_WAIT && !S.maskRising) { S.maskRising = true; sfx("rumble", 1); sfx("mech", .7); S.shake = Math.max(S.shake || 0, .5); setGoal("The ground gives something up"); }
+        if (S.maskT > MASK_WAIT && !S.maskRising) { S.maskRising = true; sfx("rumble", 1); sfx("mech", .7); S.shake = Math.max(S.shake || 0, .5); setGoal(); }
         if (S.maskRising && S.maskUp < 1) { S.maskUp = Math.min(1, S.maskUp + dt / 2.6); if (Math.random() < .5) burst(MASK.x + (Math.random() - .5) * 2.2, .1, MASK.z + (Math.random() - .5) * 2.2, 3, 0x8a8480, 2); if (S.maskUp >= 1) { sfx("debris", .9); sfx("boom", .4); burst(MASK.x, PED_H + .3, MASK.z, 30, 0xcfe2ff, 3); } } }
       const up = mk === "true" || mk === "mask" && S.hasMask ? 1 : mk === "mask" ? (S.maskUp || 0) : 0, e = up * up * (3 - 2 * up); plinth.position.y = -PED_H - .2 + e * (PED_H + .2); pedCircle.r = up > .15 ? 1.15 : 0;
       plinthMask.position.y = plinth.position.y + PED_H + .2; maskGlint.position.y = plinthMask.position.y + .3; maskLight.position.y = plinthMask.position.y + .9; S.maskShown = up > .02; }
@@ -6099,7 +6108,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
   function frame(now) { requestAnimationFrame(frame); if (paused || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, camera, scene, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  window.__game = { S, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
