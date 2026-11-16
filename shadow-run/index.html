@@ -47,7 +47,7 @@ body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow
 @keyframes low { 50% { opacity: .35; } }
 .pips { display: flex; gap: 6px; }
 .pips span { width: 18px; height: 6px; border: 1px solid var(--fg); }
-.pips span.on { background: var(--fg); }
+.pips span.on { background: var(--fg); } .pips span.half { background: linear-gradient(90deg, var(--fg) 50%, transparent 50%); }
 .pips.wolfhp span { border-color: var(--red); } .pips.wolfhp span.on { background: var(--red); }
 .compass { display: grid; justify-items: center; gap: 6px; }
 .dial { position: relative; width: 58px; height: 58px; border-radius: 50%; border: 1px solid var(--line); background: rgba(7,7,8,.55); }
@@ -82,8 +82,6 @@ body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow
 .prompt kbd { font-size: 12px; border-color: var(--fire); color: var(--fire); }
 .prompt.urgent kbd { background: var(--fire); color: #1a0d03; }
 kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; margin-right: 6px; color: var(--fg); }
-#stick { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; border: 1px solid var(--line); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity .15s; }
-#stick i { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: rgba(255,160,77,.35); border: 1px solid var(--fire); }
 /* touch action buttons */
 .pad { position: fixed; z-index: 6; right: 0; bottom: 0; display: flex; gap: 12px; align-items: end;
   padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -128,11 +126,24 @@ h2 em.red { color: var(--red); }
 .only-touch { display: none; }
 @media (hover: none) and (pointer: coarse) {
   .only-touch { display: inline; } .only-keys { display: none; }
-  /* phone: buttons along the bottom, the move hint and lock note just above them, the prompt above that */
-  .controls { justify-items: start; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); padding-bottom: 0; }
-  .prompt { left: max(16px, env(safe-area-inset-left, 0px)); transform: none; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
-  .pad { left: 0; justify-content: flex-end; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
-  .pad button { width: 66px; height: 66px; } .pad button.main { width: 78px; height: 78px; }
+  /* phone: the picture sits above a deck, so thumbs never cover it. Buttons under the left thumb, the stick under the right. */
+  #view { position: fixed; inset: 0; }
+  body.deck #view { transform: translateZ(0); overflow: hidden; bottom: calc(var(--deck) + env(safe-area-inset-bottom, 0px)); }
+  body { --deck: 214px; }
+  .controls { bottom: 8px; padding-bottom: 0; } .controls .chips { display: none; }
+  .prompt { bottom: 34px; }
+  .pad { inset: 0; display: block; padding: 0; pointer-events: none; z-index: 7; }
+  .zone { position: absolute; bottom: 0; height: calc(var(--deck) + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); pointer-events: auto; background: #050506; border-top: 1px solid var(--line); display: grid; align-content: center; justify-items: center; gap: 8px; touch-action: none; }
+  .zone.acts { left: 0; width: 54%; padding-left: env(safe-area-inset-left, 0px); } .zone.move { right: 0; width: 46%; padding-right: env(safe-area-inset-right, 0px); border-left: 1px solid var(--line); }
+  .hand { font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .btns { display: grid; grid-template-columns: auto auto; gap: 8px 12px; justify-items: center; }
+  .pad button { width: 64px; height: 64px; background: rgba(255,255,255,.03); } .pad button.main { width: 82px; height: 82px; grid-column: 1 / span 2; }
+  .ring { position: relative; width: 128px; height: 128px; border-radius: 50%; border: 1px solid var(--line); background: radial-gradient(circle, rgba(255,160,77,.07), transparent 70%); pointer-events: none; }
+  .ring i { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255,160,77,.3); border: 1px solid var(--fire); }
+  @media (orientation: landscape) {
+    body.deck #view { bottom: 0; left: calc(172px + env(safe-area-inset-left, 0px)); right: calc(156px + env(safe-area-inset-right, 0px)); }
+    .zone { top: 0; height: auto; border-top: 0; } .zone.acts { width: calc(172px + env(safe-area-inset-left, 0px)); border-right: 1px solid var(--line); } .zone.move { width: calc(156px + env(safe-area-inset-right, 0px)); }
+  }
 }
 @media (max-width: 760px) {
   .board { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; touch-action: pan-x pan-y; }
@@ -178,11 +189,11 @@ h2 em.red { color: var(--red); }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .torch.low .track i { animation: none; } .needle { transition: none; } }
 </style>
 
+<div id="view">
 <canvas id="stage" aria-label="Night scene"></canvas>
 <div id="danger"></div>
 <div id="flash"></div>
 <div id="white"></div>
-<div id="stick"><i></i></div>
 <div class="toast" id="toast"></div>
 
 <div class="hud" id="hud" hidden>
@@ -204,17 +215,31 @@ h2 em.red { color: var(--red); }
 <div class="controls" id="controls" hidden>
   <div class="chips">
     <span class="ctl only-keys"><kbd>Arrows</kbd>Move</span>
-    <span class="ctl only-touch">Drag to move</span>
     <span class="ctl only-keys" data-c="attack"><kbd>A</kbd>Attack<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
-    <span class="ctl only-keys" data-c="use"><kbd>S</kbd>Use</span>
-    <span class="ctl only-keys" data-c="dodge"><kbd>D</kbd>Dash<svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+    <span class="ctl only-keys" data-c="use"><kbd>S</kbd><span class="nm">Use</span></span>
+    <span class="ctl only-keys" data-c="dodge"><kbd>D</kbd><span class="nm">Dash</span><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
   </div>
   <span class="locknote" id="lockNote">Attack and Dash are locked. You need a weapon.</span>
 </div>
+<!-- chapter title: plays over the live scene, never stops it -->
+<div class="bars" id="bars" aria-hidden="true"><i></i><i></i></div>
+<div class="banner" id="banner" role="status" aria-live="polite">
+  <figure class="thumb"><img id="bannerImg" alt=""></figure>
+  <div class="btext">
+    <span class="label" id="bannerLabel">Chapter 1 · The cell</span>
+    <h3 id="bannerTitle">The cell</h3>
+    <span class="note" id="bannerNote">Chained in the dark.</span>
+  </div>
+</div>
+<div id="fade" aria-hidden="true"><div class="fadeText"><span class="note" id="fadeNote">The light went out.</span><span class="label" id="fadeTip"></span></div></div>
+</div>
 <div class="pad" id="pad" hidden>
-  <button type="button" id="btnUse" data-c="use">Use</button>
-  <button type="button" id="btnDodge" data-c="dodge"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Dash</button>
-  <button type="button" class="main" id="btnAttack" data-c="attack"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Attack</button>
+  <div class="zone acts"><span class="hand">Left thumb</span><div class="btns">
+    <button type="button" id="btnUse" data-c="use"><span class="nm">Use</span></button>
+    <button type="button" id="btnDodge" data-c="dodge"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg><span class="nm">Dash</span></button>
+    <button type="button" class="main" id="btnAttack" data-c="attack"><svg class="lock" viewBox="0 0 12 14" aria-hidden="true"><rect x="1.5" y="6" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M3.5 6V4.3a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Attack</button>
+  </div></div>
+  <div class="zone move" id="movePad"><div class="ring"><i id="moveKnob"></i></div><span class="hand">Right thumb · Move</span></div>
 </div>
 
 <!-- title: the storyboard for the whole film -->
@@ -232,7 +257,7 @@ h2 em.red { color: var(--red); }
         <p>A man is hunted by a shadow wolf. <strong>Eight chapters and no instructions.</strong> Read the room, watch the wolf, and work it out. The compass only points to fire.</p>
         <div class="keys">
           <span class="only-keys"><kbd>Arrows</kbd>Move</span><span class="only-keys"><kbd>A</kbd>Attack</span><span class="only-keys"><kbd>S</kbd>Use</span><span class="only-keys"><kbd>D</kbd>Dash</span>
-          <span class="only-touch">Drag to move · Use, Attack and Dash buttons</span>
+          <span class="only-touch">Right thumb moves · left thumb acts</span>
           <span><span class="only-keys">Right hand on the arrows · left hand on A S D · </span>Some controls start locked</span>
         </div>
         <div class="actions">
@@ -243,18 +268,6 @@ h2 em.red { color: var(--red); }
     </div>
   </div>
 </section>
-
-<!-- chapter title: plays over the live scene, never stops it -->
-<div class="bars" id="bars" aria-hidden="true"><i></i><i></i></div>
-<div class="banner" id="banner" role="status" aria-live="polite">
-  <figure class="thumb"><img id="bannerImg" alt=""></figure>
-  <div class="btext">
-    <span class="label" id="bannerLabel">Chapter 1 · The cell</span>
-    <h3 id="bannerTitle">The cell</h3>
-    <span class="note" id="bannerNote">Chained in the dark.</span>
-  </div>
-</div>
-<div id="fade" aria-hidden="true"><div class="fadeText"><span class="note" id="fadeNote">The light went out.</span><span class="label" id="fadeTip"></span></div></div>
 
 <section class="screen" id="winScreen" hidden>
   <div class="sheet">
@@ -4861,7 +4874,7 @@ h2 em.red { color: var(--red); }
   const SHORE_Z = -262;
   const ISLAND = { x: 0, z: -322, r: 14.5 };          // across the water: the mask, the last fight, the door
   const MASK = { x: 4, z: -321 }, DOOR = { x: 0, z: -333.5 };
-  const DASH_CD = 1.8, ROCK_HOLD = 4.2, ROCK_TOP = .2, LEAP = 7.0;
+  const DASH_CD = 1.8, ROCK_HOLD = 2.8, ROCK_TOP = .2, LEAP = 5.8;
   const WALK = 4.7, RUN = 6.3, BURN = 7.0, PIT_R = 5.5, PIT_REFILL = 60, PIT_REACH = 2.2, KINDLING = 40;
   const torchR = (f) => f <= 0 ? 0 : 1.5 + 4.3 * Math.sqrt(f / 100);
 
@@ -5139,7 +5152,8 @@ h2 em.red { color: var(--red); }
       for (let k = 0; k < 4; k++) { dummy.position.set(gx + (rnd() - .5) * .3, .2, gz + (rnd() - .5) * .3); dummy.rotation.set((rnd() - .5) * .7, rnd() * 3, (rnd() - .5) * .7); dummy.scale.set(1, .6 + rnd() * .9, 1); dummy.updateMatrix(); grass.setMatrixAt(i + k, dummy.matrix); } } scene.add(grass); }
   // ---- the crossing: stones in the water that sink under him
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x33373e, roughness: .8, emissive: 0x0b1118, flatShading: true });
-  const ROCKS = [[-1.5, -266.9, 1.5], [1.5, -271.5, 1.35], [-1, -276.3, 1.35], [3.5, -279.5, 1.3], [6, -284.3, 1.35], [1.5, -287.3, 1.3], [-3, -290.3, 1.35], [-5, -295.3, 1.3], [-1, -299, 1.35], [1, -304.1, 1.4], [-5.5, -279.8, 1.2], [8.5, -289.5, 1.2]]
+  const ROCKS = [[-2, -266.2, 1.45], [2, -269.5, 1.35], [-1.5, -273, 1.35], [-6, -275.5, 1.3], [-7.5, -280.5, 1.3], [-3.5, -284, 1.3], [1.5, -285.5, 1.35], [5.5, -289, 1.3], [4, -294, 1.3], [0, -298, 1.35], [-.3, -303.7, 1.4],      // the way across
+    [5.5, -273.8, 1.3], [7.5, -279, 1.25], [.5, -278.3, 1.3], [-4.5, -289.5, 1.3], [-6, -294.8, 1.25], [7.5, -298.5, 1.25]]                                                                                                              // stones that lead nowhere
     .map(([x, z, r]) => { const geo = new THREE.CylinderGeometry(r * .93, r * 1.28, .8, 12, 2); { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), px = a.getX(i), pz = a.getZ(i), n = 1 + Math.sin(px * 5.1 + z) * .06 + Math.cos(pz * 4.3 + x) * .06; a.setX(i, px * n); a.setZ(i, pz * n); if (y < .39) a.setY(i, y + Math.sin(px * 3 + pz * 2) * .05); } geo.computeVertexNormals(); }
       const m = new THREE.Mesh(geo, rockMat); m.position.set(x, -.2, z); m.rotation.y = rnd() * 3; scene.add(m);
       const foam = new THREE.Mesh(new THREE.RingGeometry(r * 1.22, r * 1.42, 28), new THREE.MeshBasicMaterial({ color: 0x9fc4e8, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false })); foam.rotation.x = -Math.PI / 2; foam.position.y = .1; m.add(foam); return { x, z, r, m, t: 0, sunk: 0 }; });
@@ -5147,12 +5161,19 @@ h2 em.red { color: var(--red); }
   const leapRing = new THREE.Mesh(new THREE.RingGeometry(.78, .95, 44), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })); leapRing.rotation.x = -Math.PI / 2; leapRing.visible = false; leapRing.renderOrder = 10; scene.add(leapRing);
   const ARC_N = 14, arcGeo = new THREE.BufferGeometry(); arcGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ARC_N * 3), 3));
   const leapArc = new THREE.Points(arcGeo, new THREE.PointsMaterial({ color: 0xffc078, size: .16, map: glowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })); leapArc.frustumCulled = false; leapArc.visible = false; leapArc.renderOrder = 10; scene.add(leapArc);
+  // pieces of the wolf's shadow: they come at him even through the light, and bite half as deep
+  const wisps = []; { const dark = new THREE.MeshBasicMaterial({ color: 0x020203 }), pool = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .8, depthWrite: false }), red = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
+    for (let i = 0; i < 6; i++) { const g = new THREE.Group(); const pd = new THREE.Mesh(new THREE.CircleGeometry(.5, 16), pool); pd.rotation.x = -Math.PI / 2; pd.position.y = .04; const bl = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), dark); bl.scale.set(.9, .62, 1.5); bl.position.y = .2;
+      const tl = new THREE.Mesh(new THREE.ConeGeometry(.2, .9, 6), dark); tl.rotation.x = -Math.PI / 2; tl.position.set(0, .14, -.62); const ey = new THREE.Mesh(new THREE.SphereGeometry(.055, 6, 6), red); ey.position.set(0, .3, .36);
+      g.add(pd, bl, tl, ey); g.visible = false; scene.add(g); wisps.push({ g, on: false, x: 0, z: 0, a: 0, life: 0 }); } }
+  function killWisp(w, quiet) { if (!w.on) return; w.on = false; w.g.visible = false; if (!quiet) burst(w.x, .3, w.z, 10, 0x2a1418, 2.4); }
   function pickLeap(dir) {       // the stone (or bank) he would reach by leaping the way he's pointed
     const m = Math.hypot(dir[0], dir[1]) || 1, ax = dir[0] / m, az = dir[1] / m; let best = null, bs = -9;
-    const cand = ROCKS.filter((r) => r.sunk <= 0).map((r) => ({ x: r.x, z: r.z, y: ROCK_TOP, rock: r }));
-    { const dx = S.x - ISLAND.x, dz = S.z - ISLAND.z, d = Math.hypot(dx, dz) || 1; cand.push({ x: ISLAND.x + dx / d * (ISLAND.r - 1.8), z: ISLAND.z + dz / d * (ISLAND.r - 1.8), y: 0, island: true }); }
-    if (!S.onLand) cand.push({ x: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, S.x)), z: SHORE_Z + 1.4, y: 0, land: true });
-    for (const c of cand) { const dx = c.x - S.x, dz = c.z - S.z, d = Math.hypot(dx, dz); if (d < 1.7 || d > LEAP) continue; const dot = (dx * ax + dz * az) / d; if (dot < .3) continue; const sc = dot * 2 - d * .08; if (sc > bs) { bs = sc; best = c; } }
+    const under = S.onLand ? null : ROCKS.find((r) => r.sunk <= 0 && Math.hypot(S.x - r.x, S.z - r.z) < r.r + .12), ox = under ? under.x : S.x, oz = under ? under.z : S.z;      // reach is measured from the stone, not his toes
+    const cand = ROCKS.filter((r) => r.sunk <= 0 && r !== under).map((r) => ({ x: r.x, z: r.z, y: ROCK_TOP, rock: r }));
+    { const dx = ox - ISLAND.x, dz = oz - ISLAND.z, d = Math.hypot(dx, dz) || 1; cand.push({ x: ISLAND.x + dx / d * (ISLAND.r - 1.8), z: ISLAND.z + dz / d * (ISLAND.r - 1.8), y: 0, island: true }); }
+    if (!S.onLand) cand.push({ x: Math.max(-HALF_W + 1, Math.min(HALF_W - 1, ox)), z: SHORE_Z + 1.4, y: 0, land: true });
+    for (const c of cand) { const dx = c.x - ox, dz = c.z - oz, d = Math.hypot(dx, dz); if (d < 1.7 || d > LEAP) continue; const dot = (dx * ax + dz * az) / d; if (dot < .3) continue; const sc = dot * 2 - d * .08; if (sc > bs) { bs = sc; best = c; } }
     return best;
   }
   // the shadow under the surface
@@ -5239,7 +5260,7 @@ h2 em.red { color: var(--red); }
     if (id !== "cell") { S.chained = false; chain.visible = false; } else { chain.visible = true; S.snapT = -1; S.pullT = 0; }
     S.unlock = i >= 3; S.staggerCd = 0;
     Object.assign(S, { sh: null, hide: null, hideT: 0, darkT: 0, growlT: 0, fallT: 0, leap: null, onLand: true, biteT: 0, landed: false, safe: null, hasMask: id === "true", doorOpen: false, doorK: 0, emergeT: 0, wHitCd: 0, deadT: 0 }); S.dawn = S.dawnTarget = id === "true" ? 1 : 0;
-    ROCKS.forEach((r) => { r.t = 0; r.sunk = 0; }); wolf.rotation.z = 0; $("white").style.opacity = 0;
+    ROCKS.forEach((r) => { r.t = 0; r.sunk = 0; }); wisps.forEach((w) => killWisp(w, true)); S.spillT = 5; wolf.rotation.z = 0; $("white").style.opacity = 0;
     if (id === "cross") {
       Object.assign(S, { x: 0, z: SHORE_Z + 4, heading: 0, hasTorch: true, hasSpear: true, fuel: 100, hp: 3, wx: 0, wz: SHORE_Z + 17, wState: "chase", wT: 2.5 });
       wolf.scale.setScalar(1.08); wound.scale.setScalar(1.2);
@@ -5282,7 +5303,7 @@ h2 em.red { color: var(--red); }
     clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { $("banner").classList.remove("on"); $("bars").classList.remove("on"); }, 4200);
   }
   function play() {
-    S.mode = "play"; $("hud").hidden = false; if (isTouch) $("pad").hidden = false;
+    S.mode = "play"; $("hud").hidden = false; if (isTouch) setPad(true);
     $("chapLabel").textContent = CHAPTERS[S.ch].label; setGoal();
     $("controls").hidden = false; syncLocks(true);
     initAudio(); if (actx) { actx.resume(); nextBeat = Math.max(nextBeat, actx.currentTime + .3); }
@@ -5349,12 +5370,18 @@ h2 em.red { color: var(--red); }
   addEventListener("blur", () => keys.clear());
   const press = (el, fn) => el.addEventListener("pointerdown", (e) => { e.preventDefault(); fn(); });
   press($("btnUse"), () => { usePressed = true; }); press($("btnAttack"), () => { attackPressed = true; }); press($("btnDodge"), () => { dodgePressed = true; });
-  const stickEl = $("stick"), knob = stickEl.firstElementChild;
-  canvas.addEventListener("pointerdown", (e) => { if (S.mode !== "play") return; if (e.pointerType === "mouse") { if (e.button === 0) attackPressed = true; if (e.button === 2) dodgePressed = true; return; } stick = { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; stickEl.style.left = e.clientX + "px"; stickEl.style.top = e.clientY + "px"; stickEl.style.opacity = 1; knob.style.transform = ""; canvas.setPointerCapture?.(e.pointerId); });
-  canvas.addEventListener("pointermove", (e) => { if (!stick || e.pointerId !== stick.id) return; let dx = e.clientX - stick.x0, dy = e.clientY - stick.y0; const m = Math.hypot(dx, dy), max = 40; if (m > max) { dx *= max / m; dy *= max / m; } stick.dx = dx / max; stick.dy = dy / max; knob.style.transform = `translate(${dx}px, ${dy}px)`; });
+  const movePad = $("movePad"), knob = $("moveKnob");
+  canvas.addEventListener("pointerdown", (e) => { if (S.mode !== "play" || e.pointerType !== "mouse") return; if (e.button === 0) attackPressed = true; if (e.button === 2) dodgePressed = true; });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-  const endStick = () => { stick = null; stickEl.style.opacity = 0; };
-  canvas.addEventListener("pointerup", endStick); canvas.addEventListener("pointercancel", endStick);
+  const stickAt = (e) => { const r = knob.parentElement.getBoundingClientRect(); let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); const m = Math.hypot(dx, dy), max = 40; if (m > max) { dx *= max / m; dy *= max / m; } stick.dx = dx / max; stick.dy = dy / max; knob.style.transform = `translate(${dx}px, ${dy}px)`; };
+  movePad.addEventListener("pointerdown", (e) => { e.preventDefault(); stick = { id: e.pointerId, dx: 0, dy: 0 }; try { movePad.setPointerCapture(e.pointerId); } catch (err) {} stickAt(e); });
+  movePad.addEventListener("pointermove", (e) => { if (stick && e.pointerId === stick.id) stickAt(e); });
+  const endStick = (e) => { if (stick && e.pointerId !== stick.id) return; stick = null; knob.style.transform = ""; };
+  movePad.addEventListener("pointerup", endStick); movePad.addEventListener("pointercancel", endStick);
+  function setPad(on) { $("pad").hidden = !on; if (document.body.classList.contains("deck") !== on) { document.body.classList.toggle("deck", on); resize(); } }
+  // the names on the buttons follow what he is doing
+  const NAMES = { use: "Use", dodge: "Dash", attack: "Attack" };
+  function setName(c, v) { if (NAMES[c] === v) return; NAMES[c] = v; document.querySelectorAll(`[data-c="${c}"] .nm`).forEach((el) => { el.textContent = v; }); }
 
   // ============================================================ HUD
   const eyesEl = [...$("eyes").children];
@@ -5362,10 +5389,10 @@ h2 em.red { color: var(--red); }
     const id = CHAPTERS[S.ch].id;
     const fight = S.ch >= 3;
     $("torchMeter").hidden = !S.hasTorch || (fight && id !== "berserk");
-    $("dashMeter").hidden = !S.unlock; { const k = 1 - S.dodgeCd / DASH_CD; $("dashBar").style.width = k * 100 + "%"; $("dashMeter").classList.toggle("ready", k >= 1); $("dashWhat").textContent = k >= 1 ? "Ready" : "Recovering"; $("btnDodge").style.setProperty("--cd", k); $("btnDodge").classList.toggle("cooling", k < 1); }
+    $("dashMeter").hidden = !S.unlock || !!S.jumpCtx; { const k = S.jumpCtx ? 1 : 1 - S.dodgeCd / DASH_CD; $("dashBar").style.width = k * 100 + "%"; $("dashMeter").classList.toggle("ready", k >= 1); $("dashWhat").textContent = k >= 1 ? "Ready" : "Recovering"; $("btnDodge").style.setProperty("--cd", k); $("btnDodge").classList.toggle("cooling", k < 1); }
     $("fuel").textContent = Math.ceil(S.fuel); $("fuelBar").style.width = S.fuel + "%"; $("torchMeter").classList.toggle("low", S.fuel < 30);
     $("hpMeter").hidden = S.ch < 1;
-    [...$("hpPips").children].forEach((p, i) => p.classList.toggle("on", i < S.hp));
+    [...$("hpPips").children].forEach((p, i) => { p.classList.toggle("on", i + 1 <= S.hp); p.classList.toggle("half", S.hp > i && S.hp < i + 1); });
     $("wolfMeter").hidden = !(id === "duel" || id === "true");
     { const wp = $("wolfPips"), max = id === "true" ? 6 : 3; while (wp.children.length < max) wp.appendChild(document.createElement("span")); while (wp.children.length > max) wp.lastChild.remove(); }
     [...$("wolfPips").children].forEach((p, i) => p.classList.toggle("on", i < S.wolfHp));
@@ -5423,10 +5450,11 @@ h2 em.red { color: var(--red); }
     S.dodgeCd = Math.max(0, S.dodgeCd - dt); S.inv = Math.max(0, S.inv - dt);
     if (playing && dodgePressed && !S.unlock) denied("dodge");
     if (playing && dodgePressed && S.unlock && S.dodgeCd > 0 && S.dodge <= 0) { const el = $("dashMeter"); el.classList.remove("denied"); void el.offsetWidth; el.classList.add("denied"); }   // still recovering
-    if (playing && dodgePressed && S.unlock && S.dodgeCd <= 0 && id === "cross" && !S.leap && !(S.fallT > 0) && (!S.onLand || S.z < SHORE_Z + 3.5)) {    // at the water a dash is a leap
+    S.jumpCtx = id === "cross" && (!S.onLand || S.z < SHORE_Z + 3.5) && S.z > ISLAND.z + ISLAND.r - 2;      // at the water the dash is a jump, and a jump needs no rest
+    if (playing && dodgePressed && S.unlock && id === "cross" && !S.leap && !(S.fallT > 0) && (!S.onLand || S.z < SHORE_Z + 3.5)) {    // at the water a dash is a leap
       const tg = pickLeap(moving ? [mx, mz] : facing());
-      if (tg) { S.leap = { x0: S.x, z0: S.z, y0: S.onLand ? 0 : ROCK_TOP, x1: tg.x, z1: tg.z, y1: tg.y, t: 0, dur: .38, island: !!tg.island, land: !!tg.land }; S.onLand = false; S.landed = true; S.dodgeCd = DASH_CD; S.heading = Math.atan2(-(tg.x - S.x), -(tg.z - S.z)); noise(.25, .35, 1800, true); dodgePressed = false; }
-      else if (!S.onLand) { const el = $("dashMeter"); el.classList.remove("denied"); void el.offsetWidth; el.classList.add("denied"); dodgePressed = false; }     // nothing to land on that way
+      if (tg) { S.leap = { x0: S.x, z0: S.z, y0: S.onLand ? 0 : ROCK_TOP, x1: tg.x, z1: tg.z, y1: tg.y, t: 0, dur: .38, island: !!tg.island, land: !!tg.land }; S.onLand = false; S.landed = true; S.dodgeCd = 0; S.heading = Math.atan2(-(tg.x - S.x), -(tg.z - S.z)); noise(.25, .35, 1800, true); dodgePressed = false; }
+      else if (!S.onLand) { document.querySelectorAll('[data-c="dodge"]').forEach((el) => { el.classList.remove("denied"); void el.offsetWidth; el.classList.add("denied"); }); dodgePressed = false; }     // nothing to land on that way
     }
     if (playing && dodgePressed && S.unlock && S.dodgeCd <= 0 && !S.chained && !(S.fallT > 0) && !S.leap) {
       let [fx, fz] = moving ? [mx, mz] : facing(); const m = Math.hypot(fx, fz) || 1; S.dvx = fx / m; S.dvz = fz / m; S.dodge = .22; S.dodgeCd = DASH_CD; S.inv = .38; noise(.25, .35, 1800, true);
@@ -5474,10 +5502,10 @@ h2 em.red { color: var(--red); }
     }
     // show where the leap goes
     leapRing.visible = leapArc.visible = !!leapTo;
-    if (leapTo) { const ready = S.dodgeCd <= 0, op = ready ? .75 + .2 * Math.sin(t * 7) : .22;
+    if (leapTo) { const ready = true, op = ready ? .75 + .2 * Math.sin(t * 7) : .22;
       leapRing.position.set(leapTo.x, leapTo.y + .08, leapTo.z); leapRing.material.opacity = op; leapRing.scale.setScalar(ready ? 1 + .06 * Math.sin(t * 7) : 1);
       const a = arcGeo.attributes.position.array; for (let i = 0; i < ARC_N; i++) { const k = (i + 1) / (ARC_N + 1); a[i * 3] = S.x + (leapTo.x - S.x) * k; a[i * 3 + 2] = S.z + (leapTo.z - S.z) * k; a[i * 3 + 1] = baseY + (leapTo.y - baseY) * k + Math.sin(k * Math.PI) * 1.2 + .5; } arcGeo.attributes.position.needsUpdate = true; leapArc.material.opacity = ready ? .8 : .2; }
-    S.leapReady = !!leapTo && S.dodgeCd <= 0;
+    S.leapReady = !!leapTo;
     if (S.mode !== "cut" && S.mode !== "caught") man.position.y = baseY;
     if (moving && S.dodge <= 0) { const target = Math.atan2(-mx, -mz); let d = target - S.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); S.heading += d * Math.min(1, dt * 12); }
     man.position.x = S.x; man.position.z = S.z; man.rotation.y = S.heading;
@@ -5655,7 +5683,7 @@ h2 em.red { color: var(--red); }
     else if (S.wState === "rise") { tx = S.wx; tz = S.wz; wsp = 0; if (S.wT <= 0) { S.wState = "chase"; S.wT = 2.5; } }
     else if (S.wState === "drown") { tx = S.wx * .6; tz = SHORE_Z - 8; wsp = 7; }   // it charges in after him and goes under
     else if (S.wState === "lost") { S.wa += dt * .7; if (S.hide) { tx = S.hide.x + Math.cos(S.wa) * 6.5; tz = S.hide.z + Math.sin(S.wa) * 6.5; wsp = 5; faceTo = [S.wx + Math.cos(S.wa + 1.2), S.wz + Math.sin(S.wa + 1.2)]; } else { S.wState = "chase"; S.wT = 1.8; } }   // it circles, hunting for the scent
-    else if (S.wState === "under") { tx = S.x; tz = S.z; wsp = 3.4; }                 // seven eyes under the surface, finding his stone
+    else if (S.wState === "under") { tx = S.x; tz = S.z; wsp = 4.8; }                 // seven eyes under the surface, finding his stone
     else if (S.wState === "dead") { tx = S.wx; tz = S.wz; wsp = 0; }
     const vwx = tx - S.wx, vwz = tz - S.wz, vwd = Math.hypot(vwx, vwz);
     if (vwd > 1e-3) { const st = Math.min(vwd, wsp * dt * (S.dart > 0 ? 1.8 : 1)); S.wx += vwx / vwd * st; S.wz += vwz / vwd * st; }
@@ -5781,11 +5809,25 @@ h2 em.red { color: var(--red); }
       if (S.cut === "door") {     // he walks through
         S.x += (DOOR.x - S.x) * Math.min(1, dt * 5); S.z -= 1.7 * dt; S.heading = 0;
         $("white").style.opacity = Math.max(0, Math.min(1, (S.end - .7) / 1.6));
-        if (S.end > 1) { $("hud").hidden = true; $("pad").hidden = true; $("controls").hidden = true; }
+        if (S.end > 1) { $("hud").hidden = true; setPad(false); $("controls").hidden = true; }
         if (S.end > 3.2 && $("winScreen").hidden) { $("winStat").textContent = `${fmt(S.time)} · ${S.retries} ${S.retries === 1 ? "retry" : "retries"}`; $("winScreen").hidden = false; $("winScreen").classList.add("in"); S.mode = "won"; $("white").style.transition = "opacity 1.4s ease"; $("white").style.opacity = 0; setTimeout(() => { $("white").style.transition = ""; }, 1600); }
       }
     }
     // the wolf in the water, coming out of it, and dying
+    { const spillId = id === "torch" || id === "spear" || id === "duel", wd = Math.hypot(S.x - S.wx, S.z - S.wz);
+      const can = playing && spillId && wolf.visible && !S.hide && !S.chained && wd < 15 && wd > 3 && ["edge", "circle", "recover"].includes(S.wState);
+      if (can) S.spillT -= dt;
+      if (can && S.spillT <= 0) { S.spillT = id === "duel" ? 8 : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
+        for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 4.4; w.g.visible = true; }
+        noise(.45, .5, 220, true); burst(S.wx, .5, S.wz, 16, 0x2a1418, 3); }
+      const [sfx, sfz] = facing();
+      for (const w of wisps) { if (!w.on) continue; w.life -= dt; const dx = S.x - w.x, dz = S.z - w.z, d = Math.hypot(dx, dz) || 1;
+        let da = Math.atan2(dx, dz) - w.a; da = Math.atan2(Math.sin(da), Math.cos(da)); w.a += Math.max(-1.5 * dt, Math.min(1.5 * dt, da));
+        const sp = w.life > 3.9 ? 1.4 : 5.4; w.x += Math.sin(w.a) * sp * dt; w.z += Math.cos(w.a) * sp * dt;                    // it gathers, then darts
+        const k = Math.min(1, w.life / .5, (4.4 - w.life) / .3); w.g.position.set(w.x, 0, w.z); w.g.rotation.y = w.a; w.g.scale.set(k * (1 + .08 * Math.sin(t * 14 + w.a)), k, k);
+        if (w.life <= 0 || !playing || !spillId || S.hide || huts.some((h) => Math.hypot(w.x - h.x, w.z - h.z) < h.r)) { killWisp(w); continue; }
+        if (S.strike > .1 && S.strike < .34 && d < 2.5 && (dx * -sfx + dz * -sfz) / d > .3) { killWisp(w); noise(.12, .5, 1800); continue; }      // the spear scatters it
+        if (d < .75 && S.inv <= 0) { killWisp(w); hurt(dx, dz, .5); } } }
     if (S.wState === "drown") { const dep = SHORE_Z - S.wz; wolf.position.y = -Math.max(0, Math.min(3.2, dep * .7)); wolf.rotation.x = Math.max(0, Math.min(.6, dep * .2)); if (dep > 4.6) { S.wState = "under"; wolf.visible = false; noise(.8, .7, 200); burst(S.wx, .2, S.wz, 30, 0x9fc4e8, 4); } }
     else if (S.emergeT > 0) { if (playing) S.emergeT -= dt; wolf.position.y = -3.2 * Math.max(0, S.emergeT / 2.2); wolf.rotation.x = 0; }
     else { wolf.position.y = 0; wolf.rotation.x = 0; }
@@ -5799,7 +5841,7 @@ h2 em.red { color: var(--red); }
     if (S.doorOpen) { doorBox.x0 = doorBox.x1 = 999; } else { doorBox.x0 = DOOR.x - .8; doorBox.x1 = DOOR.x + .8; }
     if (S.mode === "caught") {
       S.end += dt; man.rotation.y = face + Math.PI; man.rotation.x = -Math.min(1, S.end * 2) * .9; man.position.y = 0;
-      if (S.end > .9) { $("hud").hidden = true; $("pad").hidden = true; $("controls").hidden = true; }
+      if (S.end > .9) { $("hud").hidden = true; setPad(false); $("controls").hidden = true; }
     }
 
     // ---------- world motion
@@ -5814,7 +5856,7 @@ h2 em.red { color: var(--red); }
     moon.target.position.set(S.x, 0, S.z - 3); moon.position.set(S.x - 4, 20, S.z - 7); aura.intensity = .9 * (1 - S.dawn);
     applyRigs();
     // ---------- camera: overhead, like a storyboard
-    const portrait = innerWidth / innerHeight < .8;
+    const portrait = camera.aspect < .8;
     let off = portrait ? [0, 13.5, 8.5] : [0, 10.5, 7.8];
     if (id === "cell") off = portrait ? [0, 12, 7.5] : [0, 9.5, 6.5];
     if (id === "duel") off = portrait ? [0, 16, 10] : [0, 13, 9];
@@ -5843,25 +5885,26 @@ h2 em.red { color: var(--red); }
       else danger = .15;
       hud(danger); updateCompass(t);
       if (actx && actx.currentTime >= nextBeat - .05) { const iv = 1.05 - danger * .7; thump(nextBeat, .45 + danger * .5); thump(nextBeat + .16, .28 + danger * .4); nextBeat = Math.max(actx.currentTime, nextBeat) + iv; }
-      $("pad").hidden = !isTouch; syncLocks();
+      setPad(isTouch); syncLocks();
+      setName("dodge", S.jumpCtx ? "Jump" : "Dash"); setName("use", S.chained ? "Pull" : ((id === "torch" && !S.hasTorch && nearPost) || (id === "spear" && !S.hasSpear && nearSpear) || (id === "mask" && !S.hasMask && nearMask)) ? "Take" : "Use");
       // one context prompt at a time, naming the exact key or button
-      const k = (c) => `<kbd>${KB[c]}</kbd>`;
+      const k = (c) => `<kbd>${isTouch ? NAMES[c] : KB[c]}</kbd>`;
       if (S.chained) setPrompt(`${k("use")}Pull the chains ${S.pulls} / 5`);
       else if (S.hide) setPrompt("Hidden");
       else if ((id === "torch" && !S.hasTorch && nearPost) || (id === "spear" && !S.hasSpear && nearSpear) || (id === "mask" && !S.hasMask && nearMask)) setPrompt(`${k("use")}`);
-      else if (S.leapReady) setPrompt(`${k("dodge")}`);
+      else if (S.leapReady) setPrompt(isTouch ? `${k("dodge")}` : `${k("dodge")}Jump`);
       else setPrompt("");
     } else { beacon.visible = false; setPrompt(""); }
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").style.opacity = 0; }
   }
-  function hurt(dx, dz) {
-    if (S.hide) return;
+  function hurt(dx, dz, amt) {
+    if (S.hide) return; amt = amt || 1;
     S.biteT = .5; S.hitStop = .14; S.hitFlash = .4; burst(S.x, 1.2, S.z, 34, 0xff2a1a, 5); clank(); noise(.14, 1, 2600);
-    S.hp--; S.inv = 1.0; S.knock = .25; const d = Math.hypot(dx, dz) || 1; S.kx = dx / d; S.kz = dz / d; S.flash = .6; noise(.5, 1, 700);
+    S.hp -= amt; S.inv = amt < 1 ? .6 : 1.0; S.knock = amt < 1 ? .12 : .25; const d = Math.hypot(dx, dz) || 1; S.kx = dx / d; S.kz = dz / d; S.flash = .6; noise(.5, 1, 700);
     if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {}
     const cid = CHAPTERS[S.ch].id, dark = cid === "torch" || cid === "spear";
     if (S.hp <= 0) caught(dark ? (S.hasTorch ? "Torch out." : "He walked into the dark with nothing.") : ({ duel: "Down.", true: "Down.", cross: "Caught at the shore.", mask: "Caught in the dark." })[cid] || "Caught before the water.", dark && !S.hasTorch ? "It keeps away from fire. Something near the cell is still burning." : undefined);
-    else toast(`Hit · ${S.hp} left`, 1.2);
+    else toast(`Hit · ${S.hp % 1 ? S.hp.toFixed(1) : S.hp} left`, 1.2);
   }
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -6011,7 +6054,7 @@ h2 em.red { color: var(--red); }
   function draw() { if (composer) { finalPass.uniforms.uTime.value = performance.now() / 1000; composer.render(); } else renderer.render(scene, camera); }
 
   // ============================================================ loop
-  function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); if (composer) { composer.setPixelRatio(PR); composer.setSize(w, h); } camera.aspect = w / h; camera.fov = w / h < .8 ? 62 : 50; camera.updateProjectionMatrix(); }
+  function resize() { const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); if (composer) { composer.setPixelRatio(PR); composer.setSize(w, h); } camera.aspect = w / h; camera.fov = w / h < .8 ? 62 : 50; camera.updateProjectionMatrix(); }
   addEventListener("resize", resize); resize();
   setupChapter(0); S.mode = "title"; camera.position.set(0, 9, 9);
   let last = performance.now(), paused = false;
