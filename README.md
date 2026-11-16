@@ -1,4 +1,4 @@
-# Keep the Light
+# Shadow Run
 
 A browser game adapted from the short film *Shadows of the Undertow* by Reginald Cineus.
 
