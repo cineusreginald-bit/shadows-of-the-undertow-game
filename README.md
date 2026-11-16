@@ -1,9 +1,8 @@
-# Shadows of the Undertow · Games
+# Keep the Light
 
-Browser games adapted from the short film *Shadows of the Undertow* by Reginald Cineus.
+A browser game adapted from the short film *Shadows of the Undertow* by Reginald Cineus.
 
-- `keep-the-light/` · Keep the Light, the chaptered game
-- `outrun-the-shadow/` · Outrun the Shadow, the chase
+- `keep-the-light/` · the game
 
 Hosted with GitHub Pages and embedded on reginaldcineus.com.
 
