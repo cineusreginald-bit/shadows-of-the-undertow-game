@@ -260,14 +260,14 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   <div class="sheet">
     <header><span class="label">Shadows of the Undertow · Playable</span><span class="label">Eight chapters</span></header>
     <div class="board">
-      <figure class="panel"><div class="frame"><img alt="A man in a silver mask among the flames" data-img="mask"></div><figcaption><span class="label">Pnl 1</span><span class="note">Masked figures stand over him.</span></figcaption></figure>
+      <figure class="panel"><div class="frame"><img alt="A man in a silver mask among the flames" data-img="mask"></div><figcaption><span class="label">Pnl 1</span><span class="note">Masked figures stand over you.</span></figcaption></figure>
       <figure class="panel"><div class="frame"><img alt="Seven red eyes in the smoke" data-img="eyes"></div><figcaption><span class="label">Pnl 2</span><span class="note">Red eyes in the smoke.</span></figcaption></figure>
-      <figure class="panel"><div class="frame"><img alt="The man sinking through deep blue water" data-img="under"></div><figcaption><span class="label">Pnl 3</span><span class="note">The water drags him into an unknown world.</span></figcaption></figure>
+      <figure class="panel"><div class="frame"><img alt="The man sinking through deep blue water" data-img="under"></div><figcaption><span class="label">Pnl 3</span><span class="note">The water drags you into an unknown world.</span></figcaption></figure>
     </div>
     <div class="intro">
       <h1>Shadow <em>Run</em></h1>
       <div class="copy">
-        <p>A man is hunted by a shadow wolf. Eight chapters and run for your life!</p>
+        <p>You are hunted by a shadow wolf. Eight chapters and run for your life!</p>
         <div class="keys">
           <span class="only-keys"><kbd>Arrows</kbd>Move</span><span class="only-keys"><kbd>A</kbd>Attack</span><span class="only-keys"><kbd>S</kbd>Use</span><span class="only-keys"><kbd>D</kbd>Dash</span>
           <span class="only-touch">Right thumb moves · left thumb acts</span>
@@ -285,11 +285,11 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 <section class="screen" id="winScreen" hidden>
   <div class="sheet">
     <div class="end">
-      <figure class="panel"><div class="frame"><img alt="The man at rest, eyes closed, in golden light" data-img="calm"></div><figcaption><span class="label">Final</span><span class="note">He walks through.</span></figcaption></figure>
+      <figure class="panel"><div class="frame"><img alt="The man at rest, eyes closed, in golden light" data-img="calm"></div><figcaption><span class="label">Final</span><span class="note">You walk through.</span></figcaption></figure>
       <div class="copy">
         <span class="label">The end</span>
         <h2>Through the <em>door</em></h2>
-        <p>The wolf turns to smoke. The doors open into light, and he walks out.</p>
+        <p>The wolf turns to smoke. The doors open into light, and you walk out.</p>
         <p class="stat" id="winStat">0:00 · 0 retries</p>
         <div class="actions">
           <a class="btn" href="https://www.youtube.com/watch?v=Qlvg_YUjLZM" target="_blank" rel="noopener">Watch the teaser ↗</a>
@@ -4867,13 +4867,13 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 
   // ============================================================ the story: eight chapters
   const CHAPTERS = [
-    { id: "cell",    title: "The <em>cell</em>",  label: "1 · Int. stone chamber · Unknown",             img: "mask",   note: "He wakes up chained to the floor. Red eyes watch from the window." },
+    { id: "cell",    title: "The <em>cell</em>",  label: "1 · Int. stone chamber · Unknown",             img: "mask",   note: "You wake up chained to the floor. Red eyes watch from the window." },
     { id: "torch",   title: "The <em>torch</em>", label: "2 · Int. cave path · Night",     img: "eyes",   note: "A torch burns on a post. The wolf stays out of its light." },
     { id: "spear",   title: "The <em>spear</em>", label: "3 · Int. cave shrine · Night",           img: "bloody", note: "A spear lies inside a ring of standing stones." },
     { id: "duel",    title: "The <em>fight</em>", label: "4 · Int. cave shrine · Continuous",      img: "attack", note: "Fire closes the ring. The wolf steps in." },
     { id: "berserk", title: "The <em class='red'>run</em>", label: "5 · Int. cave shore · Night", img: "scream", note: "The wolf gets back up. Now nothing hurts it." },
-    { id: "cross",   title: "The <em>crossing</em>", label: "6 · Int. cave lake · Night",          img: "water",  note: "Stones cross the water. The wolf goes in after him." },
-    { id: "mask",    title: "The <em>mask</em>",  label: "7 · Int. cave island · Night",           img: "mask",   note: "The wolf climbs out of the water. He still can't hurt it." },
+    { id: "cross",   title: "The <em>crossing</em>", label: "6 · Int. cave lake · Night",          img: "water",  note: "Stones cross the water. The wolf goes in after you." },
+    { id: "mask",    title: "The <em>mask</em>",  label: "7 · Int. cave island · Night",           img: "mask",   note: "The wolf climbs out of the water. You still can't hurt it." },
     { id: "true",    title: "The <em class='red'>wolf</em>", label: "8 · Int. cave island · First light", img: "lair", note: "The smoke pulls away from the wolf. Now there are two of them." },
   ];
   const TIPS = {
@@ -5424,6 +5424,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   // ============================================================ input
   addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
+    // inside a web page the arrow keys and space must never scroll the page behind the game, whatever the game is doing
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "home", "end"].includes(k) || (k === " " && !e.target.closest("button, a, input"))) e.preventDefault();
     if (S.mode !== "play") return;
     if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { keys.add(k); e.preventDefault(); }
     if ((k === "s" || k === "e" || k === "l") && !e.repeat) { usePressed = true; e.preventDefault(); }
@@ -5979,7 +5981,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     S.hp -= amt; S.inv = amt < 1 ? .6 : 1.0; S.knock = amt < 1 ? .12 : .25; const d = Math.hypot(dx, dz) || 1; S.kx = dx / d; S.kz = dz / d; S.flash = .6; sfx("thud", amt < 1 ? .6 : 1) || noise(.5, 1, 700);
     if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {}
     const cid = CHAPTERS[S.ch].id, dark = cid === "torch" || cid === "spear";
-    if (S.hp <= 0) caught(dark ? (S.hasTorch ? "The torch went out." : "He went into the dark without a light.") : ({ duel: "Down.", true: "Down.", cross: "Caught at the shore.", mask: "Caught on the island." })[cid] || "Caught before the water.", dark && !S.hasTorch ? "The wolf stays away from fire. A torch is burning near the chamber." : undefined);
+    if (S.hp <= 0) caught(dark ? (S.hasTorch ? "The torch went out." : "You went into the dark without a light.") : ({ duel: "Down.", true: "Down.", cross: "Caught at the shore.", mask: "Caught on the island." })[cid] || "Caught before the water.", dark && !S.hasTorch ? "The wolf stays away from fire. A torch is burning near the chamber." : undefined);
     else toast(`Hit · ${S.hp % 1 ? S.hp.toFixed(1) : S.hp} left`, 1.2);
   }
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
