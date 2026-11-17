@@ -5304,45 +5304,45 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   // ============================================================ before the cave: the undertow
   // He is under the ocean, head first down a whirlpool, seen from behind his feet. Rocks come up out of it at him. He lasts until it takes him, and wakes up in the chamber.
   const SINK_CARD = { id: "sink", title: "The <em>undertow</em>", label: "1 · Ext. ocean · Underwater", note: "The water drags him down. Rocks come up out of the dark." };
-  const SY = -140, SINK_R = 4.2, SINK_T = 30, SINK_FAR = -27;
+  const SY = -140, SINK_R = 4.2, SINK_T = 30, SINK_FAR = -40;
   const K = { on: false, x: 0, z: 0, vx: 0, vz: 0, ix: 0, iz: 0, mz: 0, t: 0, inv: 0, grace: 0, end: 0, dead: 0, spin: 0, roll: 0, spawn: 0, surge: 0, run: 0, list: [] };
   const sinkG = new THREE.Group(); sinkG.position.y = SY; sinkG.visible = false; scene.add(sinkG);
   const mkTex = (w, h, draw) => { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
-  const vortexTex = mkTex(512, 512, (g, w, h) => {
-    const c = w / 2, rg = g.createRadialGradient(c, c, 0, c, c, c); rg.addColorStop(0, "#000408"); rg.addColorStop(.14, "#01101a"); rg.addColorStop(.45, "#0b4466"); rg.addColorStop(.66, "#0a3450"); rg.addColorStop(.93, "#021420"); rg.addColorStop(1, "#021420"); g.fillStyle = rg; g.fillRect(0, 0, w, h);
-    g.lineCap = "round";
-    for (let arm = 0; arm < 7; arm++) for (const [lw, al] of [[26, .06], [12, .1], [4, .2]]) { g.beginPath(); for (let r = 14; r < c; r += 4) { const a = arm * Math.PI * 2 / 7 + Math.log(r) * 2.3, x = c + Math.cos(a) * r, y = c + Math.sin(a) * r; r === 14 ? g.moveTo(x, y) : g.lineTo(x, y); } g.lineWidth = lw; g.strokeStyle = `rgba(160,220,245,${al})`; g.stroke(); }
-  });
-  const wallTex = mkTex(512, 512, (g, w, h) => { g.fillStyle = "#052235"; g.fillRect(0, 0, w, h); g.lineCap = "round";
-    for (let i = 0; i < 70; i++) { const x = Math.random() * w, y = Math.random() * h, len = 90 + Math.random() * 240, lw = 2 + Math.random() * 12, al = .04 + Math.random() * .12;
-      for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + len * .3, y + oy + len); g.lineWidth = lw; g.strokeStyle = `rgba(150,215,245,${al})`; g.stroke(); } } });
-  wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping; wallTex.repeat.set(3, 2);
+  const wallTex = mkTex(512, 512, (g, w, h) => { g.fillStyle = "#06293f"; g.fillRect(0, 0, w, h); g.lineCap = "round";
+    for (let i = 0; i < 90; i++) { const x = Math.random() * w, y = Math.random() * h, len = 90 + Math.random() * 260, lw = 2 + Math.random() * 13, al = .05 + Math.random() * .14;
+      for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + len * .55, y + oy + len); g.lineWidth = lw; g.strokeStyle = `rgba(150,215,245,${al})`; g.stroke(); } } });
+  wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping; wallTex.repeat.set(3, 2.5);
+  // the whirlpool is one funnel: wide around him, curling down to a dark throat far ahead
+  const FUN_NEAR = 7, FUN_LEN = 62, funR = (z) => 1.1 + 8.4 * Math.pow(Math.max(0, (z - (FUN_NEAR - FUN_LEN)) / FUN_LEN), 1.7);
   const tunnel = new THREE.Group(); sinkG.add(tunnel);
-  { const wall = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 40, 40, 1, true), new THREE.MeshBasicMaterial({ map: wallTex, side: THREE.BackSide })); wall.rotation.x = -Math.PI / 2; wall.position.z = -10; tunnel.add(wall); }
-  const vortex = new THREE.Mesh(new THREE.CircleGeometry(9.6, 56), new THREE.MeshBasicMaterial({ map: vortexTex, fog: false, color: 0xb8ccd6 })); vortex.position.z = SINK_FAR; sinkG.add(vortex);
+  { const pts = []; for (let i = 0; i <= 40; i++) { const y = i / 40 * FUN_LEN; pts.push(new THREE.Vector2(funR(FUN_NEAR - y), y)); }
+    const geo = new THREE.LatheGeometry(pts, 48), col = new Float32Array(geo.attributes.position.count * 3), P = geo.attributes.position;
+    for (let i = 0; i < P.count; i++) { const k = Math.pow(Math.max(0, 1 - P.getY(i) / FUN_LEN), 1.3), c = .1 + .9 * k; col[i * 3] = c * .8; col[i * 3 + 1] = c * .95; col[i * 3 + 2] = c; }     // darker the deeper it goes
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const wall = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: wallTex, side: THREE.BackSide, vertexColors: true })); wall.rotation.x = -Math.PI / 2; wall.position.z = FUN_NEAR; tunnel.add(wall); }
   const sinkLight = new THREE.PointLight(0xd8ecf8, .5, 14, 1.4); sinkG.add(sinkLight);
   const BUB_N = 200, bub = new Float32Array(BUB_N * 3), bubR = [], bubA = [];
-  for (let i = 0; i < BUB_N; i++) { bubR.push(.6 + Math.random() * 8); bubA.push(Math.random() * Math.PI * 2); bub[i * 3 + 2] = SINK_FAR + Math.random() * 34; }
+  for (let i = 0; i < BUB_N; i++) { bubR.push(Math.random()); bubA.push(Math.random() * Math.PI * 2); bub[i * 3 + 2] = SINK_FAR + Math.random() * 41; }
   const bubGeo = new THREE.BufferGeometry(); bubGeo.setAttribute("position", new THREE.BufferAttribute(bub, 3));
   const bubbles = new THREE.Points(bubGeo, new THREE.PointsMaterial({ color: 0xbfe8ff, size: .09, transparent: true, opacity: .7, depthWrite: false })); bubbles.frustumCulled = false; sinkG.add(bubbles);
-  { const rockM = new THREE.MeshStandardMaterial({ color: 0x0a0d10, roughness: 1, flatShading: true }), geos = [new THREE.DodecahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 0), new THREE.DodecahedronGeometry(1, 1)];
+  { const rockM = new THREE.MeshStandardMaterial({ color: 0x0a0d10, roughness: 1, flatShading: true, emissive: 0x03060a, emissiveIntensity: 1 }), geos = [new THREE.DodecahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 0), new THREE.DodecahedronGeometry(1, 1)];
     for (const geo of geos) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const k = .82 + ((Math.sin(p.getX(i) * 12.9 + p.getY(i) * 78.2 + p.getZ(i) * 37.7) * 43758.5) % 1 + 1) % 1 * .36; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k); } geo.computeVertexNormals(); }
     for (let i = 0; i < 26; i++) { const m = new THREE.Mesh(geos[i % 3], rockM); m.visible = false; sinkG.add(m); K.list.push({ g: m, on: false }); } }
   function sinkSpawn(prog) {
     const d = K.list.find((d) => !d.on); if (!d) return; d.on = true; d.g.visible = true; d.zz = SINK_FAR + 2; d.age = 0; d.rad = .55 + Math.random() * .55; d.sq = [.85 + Math.random() * .4, .75 + Math.random() * .4, .85 + Math.random() * .4];
-    d.vz = 9 + prog * 4.5 + Math.random() * 2.5; d.tx = (Math.random() - .5) * 2.4; d.ty = (Math.random() - .5) * 2.4; d.g.rotation.set(Math.random() * 6, Math.random() * 6, 0);
+    d.vz = 13 + prog * 6 + Math.random() * 3; d.tx = (Math.random() - .5) * 2.4; d.ty = (Math.random() - .5) * 2.4; d.g.rotation.set(Math.random() * 6, Math.random() * 6, 0);
     if (Math.random() < .7) { d.w = 0; d.px = K.x + K.vx * .4 + (Math.random() - .5) * 1.1; d.pz = K.z + K.vz * .4 + (Math.random() - .5) * 1.1; }        // straight at where he is
     else { d.r = Math.sqrt(Math.random()) * (SINK_R + .6); d.a = Math.random() * Math.PI * 2; d.w = .25 + Math.random() * .45; d.px = Math.cos(d.a) * d.r; d.pz = Math.sin(d.a) * d.r; }                       // carried round by the water
   }
   function sinkEnv(on) {
     sinkG.visible = on; K.on = on; K.run++; man.rotation.order = on ? "YXZ" : "XYZ"; man.scale.setScalar(1); man.visible = true;
-    if (on) { scene.background.set(0x021420); scene.fog.color.set(0x021420); scene.fog.near = 10; scene.fog.far = 46; hemi.color.set(0x8fb4cc); hemi.groundColor.set(0x05121c); hemi.intensity = .4; moon.color.set(0xcfe6f5); moon.intensity = .25; }
+    if (on) { scene.background.set(0x010a12); scene.fog.color.set(0x010a12); scene.fog.near = 8; scene.fog.far = 44; hemi.color.set(0x8fb4cc); hemi.groundColor.set(0x05121c); hemi.intensity = .4; moon.color.set(0xcfe6f5); moon.intensity = .25; }
     else { for (const d of K.list) { d.on = false; d.g.visible = false; } man.rotation.set(0, 0, 0); applyDawn(); }
   }
   function startSink(again) {
     quiet = true; setupChapter(0, true); S.mode = "title"; update(.016, performance.now() / 1000); quiet = false;      // one ordinary pass puts everything he carries away
     Object.assign(K, { x: 1.2, z: .6, vx: 0, vz: 0, ix: 0, iz: 0, mz: 0, t: 0, inv: 0, grace: 0, end: 0, dead: 0, spin: 0, roll: 0, spawn: 1.6, surge: 5.5, faded: false }); for (const d of K.list) { d.on = false; d.g.visible = false; }
-    sinkEnv(true); vortex.scale.setScalar(1);
+    sinkEnv(true);
     S.mode = "sink"; S.hp = 3; $("hud").hidden = false; if (isTouch) setPad(true); $("chapLabel").textContent = SINK_CARD.label; $("goalText").textContent = "Stay clear of the rocks"; $("controls").hidden = false; syncLocks(true); setPrompt("");
     camera.position.set(K.x * .6, SY - K.z * .8 + 2, 4.8);
     initAudio(); if (actx) actx.resume();
@@ -5377,11 +5377,11 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (live && (K.spawn -= dt) <= 0) { K.spawn = .8 - .4 * prog; sinkSpawn(prog); }
     for (const d of K.list) { if (!d.on) continue; d.age += dt; d.zz += d.vz * dt; if (d.zz > 7) { d.on = false; d.g.visible = false; continue; }
       if (d.w) { d.a += d.w * dt; d.px = Math.cos(d.a) * d.r; d.pz = Math.sin(d.a) * d.r; }
-      const k = d.rad * Math.min(1, d.age * 2.5); d.g.scale.set(k * d.sq[0], k * d.sq[1], k * d.sq[2]); d.g.position.set(d.px, -d.pz, d.zz); d.g.rotation.x += d.tx * dt; d.g.rotation.y += d.ty * dt;
+      const k = d.rad * Math.min(1, d.age * 2.5); d.g.scale.set(k * d.sq[0], k * d.sq[1], k * d.sq[2]); const sp = Math.min(1, Math.pow(Math.max(0, 1 - d.zz / SINK_FAR), 1.25)); d.g.position.set(d.px * sp, -d.pz * sp, d.zz); d.g.rotation.x += d.tx * dt; d.g.rotation.y += d.ty * dt;
       if (live && !K.inv && !K.grace && Math.abs(d.zz) < d.rad + .85 && Math.hypot(K.x - d.px, K.z - d.pz) < d.rad + .36) sinkHit(d); }
     const flow = 9 + prog * 7 + (K.end ? K.end * 14 : 0);
-    tunnel.rotation.z += dt * (.35 + prog * .35); wallTex.offset.y -= dt * flow / 26; vortex.rotation.z += dt * (.6 + prog * .7 + (K.end ? K.end * 2 : 0)); if (K.end) vortex.scale.setScalar(1 + K.end * K.end * .9);
-    for (let i = 0; i < BUB_N; i++) { bubA[i] += dt * .5; let z = bub[i * 3 + 2] + dt * flow * (.7 + (i % 5) * .12); if (z > 1.5) z = SINK_FAR + 1; bub[i * 3 + 2] = z; bub[i * 3] = Math.cos(bubA[i]) * bubR[i]; bub[i * 3 + 1] = Math.sin(bubA[i]) * bubR[i]; } bubGeo.attributes.position.needsUpdate = true;
+    tunnel.rotation.z += dt * (.45 + prog * .45 + (K.end ? K.end * 1.5 : 0)); wallTex.offset.y -= dt * flow / 26; 
+    for (let i = 0; i < BUB_N; i++) { bubA[i] += dt * .5; let z = bub[i * 3 + 2] + dt * flow * (.7 + (i % 5) * .12); if (z > 1.5) z = SINK_FAR + 1; bub[i * 3 + 2] = z; const br = bubR[i] * funR(z) * .92; bub[i * 3] = Math.cos(bubA[i]) * br; bub[i * 3 + 1] = Math.sin(bubA[i]) * br; } bubGeo.attributes.position.needsUpdate = true;
     // the man: head first into it, arms out ahead, legs kicking, turned over when he is thrown
     if (K.end) K.mz -= dt * (3 + K.end * 12); const sc = K.end ? Math.max(.3, 1 - K.end * .3) : 1, drop = K.dead ? Math.min(4, K.dead * 1.2) : 0;
     const p = t * 7, limp = K.dead ? 1 : 0;
@@ -5529,8 +5529,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   // ============================================================ input
   addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
-    if (S.mode !== "play") return;
+    if (S.mode !== "play" && S.mode !== "sink") return;
     if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { keys.add(k); e.preventDefault(); }
+    if (S.mode === "sink") return;
     if ((k === "s" || k === "e" || k === "l") && !e.repeat) { usePressed = true; e.preventDefault(); }
     if ((k === "a" || k === "f" || k === "j") && !e.repeat) { attackPressed = true; e.preventDefault(); }
     if ((k === "d" || k === " " || k === "shift" || k === "k") && !e.repeat) { dodgePressed = true; e.preventDefault(); }
