@@ -213,6 +213,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     <div class="goal"><span class="label" id="chapLabel">Chapter 1 · The cell</span><b id="goalText">Break the chains.</b></div>
     <div class="meter torch" id="torchMeter" hidden><div class="row"><span class="label">Torch</span><span class="label"><b id="fuel">100</b>%</span></div><div class="track"><i id="fuelBar"></i></div></div>
     <div class="meter" id="hpMeter" hidden><div class="row"><span class="label">You</span><div class="pips" id="hpPips"><span></span><span></span><span></span></div></div></div>
+    <div class="meter" id="sinkMeter" hidden><div class="row"><span class="label">Going under</span></div><div class="track"><i id="sinkBar"></i></div></div>
     <div class="meter" id="wolfMeter" hidden><div class="row"><span class="label">The wolf</span><div class="pips wolfhp" id="wolfPips"><span></span><span></span><span></span></div></div></div>
     <div class="meter dash" id="dashMeter" hidden><div class="row"><span class="label">Dash</span><span class="label" id="dashWhat">Ready</span></div><div class="track"><i id="dashBar"></i></div></div>
   </div>
@@ -258,7 +259,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 <!-- title: the storyboard for the whole film -->
 <section class="screen" id="titleScreen">
   <div class="sheet">
-    <header><span class="label">Shadows of the Undertow · Playable</span><span class="label">Eight chapters</span></header>
+    <header><span class="label">Shadows of the Undertow · Playable</span><span class="label">Nine chapters</span></header>
     <div class="board">
       <figure class="panel"><div class="frame"><img alt="A man in a silver mask among the flames" data-img="mask"></div><figcaption><span class="label">Pnl 1</span><span class="note">Masked figures stand over him.</span></figcaption></figure>
       <figure class="panel"><div class="frame"><img alt="Seven red eyes in the smoke" data-img="eyes"></div><figcaption><span class="label">Pnl 2</span><span class="note">Red eyes in the smoke.</span></figcaption></figure>
@@ -267,7 +268,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     <div class="intro">
       <h1>Shadow <em>Run</em></h1>
       <div class="copy">
-        <p>A man is hunted by a shadow wolf. Eight chapters and run for your life!</p>
+        <p>A man is hunted by a shadow wolf. Nine chapters and run for your life!</p>
         <div class="keys">
           <span class="only-keys"><kbd>Arrows</kbd>Move</span><span class="only-keys"><kbd>A</kbd>Attack</span><span class="only-keys"><kbd>S</kbd>Use</span><span class="only-keys"><kbd>D</kbd>Dash</span>
           <span class="only-touch">Right thumb moves · left thumb acts</span>
@@ -4865,16 +4866,16 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isTouch = matchMedia("(hover: none) and (pointer: coarse)").matches;
 
-  // ============================================================ the story: eight chapters
+  // ============================================================ the story: the undertow, then eight chapters in the cave
   const CHAPTERS = [
-    { id: "cell",    title: "The <em>cell</em>",  label: "1 · Int. stone chamber · Unknown",             img: "mask",   note: "He wakes up chained to the floor. Red eyes watch from the window." },
-    { id: "torch",   title: "The <em>torch</em>", label: "2 · Int. cave path · Night",     img: "eyes",   note: "A torch burns on a post. The wolf stays out of its light." },
-    { id: "spear",   title: "The <em>spear</em>", label: "3 · Int. cave shrine · Night",           img: "bloody", note: "A spear lies inside a ring of standing stones." },
-    { id: "duel",    title: "The <em>fight</em>", label: "4 · Int. cave shrine · Continuous",      img: "attack", note: "Fire closes the ring. The wolf steps in." },
-    { id: "berserk", title: "The <em class='red'>run</em>", label: "5 · Int. cave shore · Night", img: "scream", note: "The wolf gets back up. Now nothing hurts it." },
-    { id: "cross",   title: "The <em>crossing</em>", label: "6 · Int. cave lake · Night",          img: "water",  note: "Stones cross the water. The wolf goes in after him." },
-    { id: "mask",    title: "The <em>mask</em>",  label: "7 · Int. cave island · Night",           img: "mask",   note: "The wolf climbs out of the water. He still can't hurt it." },
-    { id: "true",    title: "The <em class='red'>wolf</em>", label: "8 · Int. cave island · First light", img: "lair", note: "The smoke pulls away from the wolf. Now there are two of them." },
+    { id: "cell",    title: "The <em>cell</em>",  label: "2 · Int. stone chamber · Unknown",             img: "mask",   note: "He wakes up chained to the floor. Red eyes watch from the window." },
+    { id: "torch",   title: "The <em>torch</em>", label: "3 · Int. cave path · Night",     img: "eyes",   note: "A torch burns on a post. The wolf stays out of its light." },
+    { id: "spear",   title: "The <em>spear</em>", label: "4 · Int. cave shrine · Night",           img: "bloody", note: "A spear lies inside a ring of standing stones." },
+    { id: "duel",    title: "The <em>fight</em>", label: "5 · Int. cave shrine · Continuous",      img: "attack", note: "Fire closes the ring. The wolf steps in." },
+    { id: "berserk", title: "The <em class='red'>run</em>", label: "6 · Int. cave shore · Night", img: "scream", note: "The wolf gets back up. Now nothing hurts it." },
+    { id: "cross",   title: "The <em>crossing</em>", label: "7 · Int. cave lake · Night",          img: "water",  note: "Stones cross the water. The wolf goes in after him." },
+    { id: "mask",    title: "The <em>mask</em>",  label: "8 · Int. cave island · Night",           img: "mask",   note: "The wolf climbs out of the water. He still can't hurt it." },
+    { id: "true",    title: "The <em class='red'>wolf</em>", label: "9 · Int. cave island · First light", img: "lair", note: "The smoke pulls away from the wolf. Now there are two of them." },
   ];
   const TIPS = {
     cell: "Find the gap in the wall where the light comes in.",
@@ -5275,9 +5276,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (now > L.end - xf - .15) { const at = L.end > now ? L.end - xf : now, src = actx.createBufferSource(), e = actx.createGain(); src.buffer = b; e.gain.setValueAtTime(0, at); e.gain.linearRampToValueAtTime(1, at + xf); e.gain.setValueAtTime(1, at + b.duration - xf); e.gain.linearRampToValueAtTime(0, at + b.duration); src.connect(e); e.connect(L.g); src.start(at); src.stop(at + b.duration + .05); L.end = at + b.duration; } }
   function audioTick(dt) { if (!actx) return; const id = CHAPTERS[S.ch].id, play = S.mode === "play" || S.mode === "cut" || S.mode === "caught", won = S.mode === "won" || (id === "true" && S.wState === "dead");
     const fight = id === "duel" || id === "berserk" || id === "cross" || (id === "true" && !won), nearWater = S.z < SHORE_Z + 14;
-    bed("m_night", play && !fight && !won && S.ch > 0 ? .3 : play && S.ch === 0 ? .16 : 0, dt, 4); bed("m_chase", play && fight ? .34 : 0, dt, 3); bed("m_dawn", won ? .4 : 0, dt, 4);
+    const sink = S.mode === "sink"; bed("m_night", sink ? .2 : play && !fight && !won && S.ch > 0 ? .3 : play && S.ch === 0 ? .16 : 0, dt, 4); bed("m_chase", play && fight ? .34 : 0, dt, 3); bed("m_dawn", won ? .4 : 0, dt, 4);
     bed("wind", play ? (won ? .03 : .11) : 0, dt, 1.5); bed("fire", play && S.hasTorch && S.fuel > 0 && !S.hasMask ? .3 + .1 * (S.fuel / 100) : 0, dt, 1.2);
-    bed("whisper", play && id === "duel" ? .55 : 0, dt, 2); bed("lap", play && nearWater && !won ? .32 : 0, dt, 1); bed("deep", play && id === "cross" && S.wState === "under" ? .3 : 0, dt, 2);
+    bed("whisper", play && id === "duel" ? .55 : 0, dt, 2); bed("lap", play && nearWater && !won ? .32 : 0, dt, 1); bed("deep", sink ? .55 : play && id === "cross" && S.wState === "under" ? .3 : 0, dt, sink ? 1 : 2);
     // far off, now and then, it howls
     if (play && S.ch > 0 && !fight && !won && (S.howlT = (S.howlT === undefined ? 9 : S.howlT) - dt) <= 0) { S.howlT = 24 + Math.random() * 18; sfx(Math.random() < .5 ? "howl" : "howl2", .22); } }
   function thump(t, g0) { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(38, t + .18); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(g0, t + .015); g.gain.exponentialRampToValueAtTime(.001, t + .25); o.connect(g); g.connect(master); o.start(t); o.stop(t + .3); }
@@ -5299,7 +5300,115 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const KB = isTouch ? { use: "Use", attack: "Attack", dodge: "Dash" } : { use: "S", attack: "A", dodge: "D" };
 
   // ---- set up the world for the start of a chapter (also used for retries)
+
+  // ============================================================ before the cave: the undertow
+  // He is under the ocean, turning in a whirlpool with the wreckage. He lasts until it pulls him down, and wakes up in the chamber.
+  const SINK_CARD = { id: "sink", title: "The <em>undertow</em>", label: "1 · Ext. ocean · Underwater", note: "The water drags him down. Wreckage spins around him." };
+  const SY = -140, SINK_R = 9.5, SINK_T = 30;
+  const K = { on: false, x: 0, z: 0, vx: 0, vz: 0, ix: 0, iz: 0, t: 0, inv: 0, grace: 0, end: 0, dead: 0, h: 0, spin: 0, spawn: 0, surge: 0, run: 0, list: [] };
+  const sinkG = new THREE.Group(); sinkG.position.y = SY; sinkG.visible = false; scene.add(sinkG);
+  const vortexTex = canvasTex(512, 512, (g, w, h) => {
+    const c = w / 2, rg = g.createRadialGradient(c, c, 0, c, c, c); rg.addColorStop(0, "#00060c"); rg.addColorStop(.16, "#02131f"); rg.addColorStop(.5, "#0a3a58"); rg.addColorStop(.85, "#06243a"); rg.addColorStop(1, "#02101c"); g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    g.lineCap = "round";
+    for (let arm = 0; arm < 7; arm++) for (const [lw, al] of [[26, .05], [12, .08], [4, .16]]) { g.beginPath(); for (let r = 14; r < c; r += 4) { const a = arm * Math.PI * 2 / 7 + Math.log(r) * 2.3, x = c + Math.cos(a) * r, y = c + Math.sin(a) * r; r === 14 ? g.moveTo(x, y) : g.lineTo(x, y); } g.lineWidth = lw; g.strokeStyle = `rgba(150,215,245,${al})`; g.stroke(); }
+    for (let i = 0; i < 500; i++) { const a = rnd() * Math.PI * 2, r = 30 + rnd() * (c - 30); g.fillStyle = `rgba(190,230,250,${.05 + rnd() * .12})`; g.fillRect(c + Math.cos(a) * r, c + Math.sin(a) * r, 1 + rnd() * 2, 1 + rnd() * 2); }
+  });
+  const vortex = new THREE.Mesh(new THREE.CircleGeometry(22, 56), new THREE.MeshBasicMaterial({ map: vortexTex })); vortex.rotation.x = -Math.PI / 2; vortex.position.y = -2.4; sinkG.add(vortex);
+  const vortex2 = new THREE.Mesh(new THREE.CircleGeometry(15, 48), new THREE.MeshBasicMaterial({ map: vortexTex, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false })); vortex2.rotation.x = -Math.PI / 2; vortex2.position.y = 2.6; sinkG.add(vortex2);
+  const sinkLight = new THREE.PointLight(0xd8ecf8, .55, 22, 1.4); sinkG.add(sinkLight);
+  const BUB_N = 240, bub = new Float32Array(BUB_N * 3), bubR = [], bubA = [];
+  for (let i = 0; i < BUB_N; i++) { bubR.push(1 + rnd() * 13); bubA.push(rnd() * Math.PI * 2); bub[i * 3 + 1] = -2 + rnd() * 8; }
+  const bubGeo = new THREE.BufferGeometry(); bubGeo.setAttribute("position", new THREE.BufferAttribute(bub, 3));
+  const bubbles = new THREE.Points(bubGeo, new THREE.PointsMaterial({ color: 0xbfe8ff, size: .11, transparent: true, opacity: .7, depthWrite: false })); bubbles.frustumCulled = false; sinkG.add(bubbles);
+  { const mk = (c, m) => new THREE.MeshStandardMaterial({ color: c, roughness: .85, metalness: m || 0, emissive: 0x000000 });
+    const rockM = mk(0x39424a), woodM = mk(0x7a4a22), ironM = mk(0x6b747d, .4), rockGeo = new THREE.DodecahedronGeometry(.72, 0), plankGeo = new THREE.BoxGeometry(2.4, .2, .46), crateGeo = new THREE.BoxGeometry(1.05, 1.05, 1.05), linkGeo = new THREE.TorusGeometry(.2, .065, 6, 10);
+    for (let i = 0; i < 28; i++) { const kind = ["rock", "plank", "chain", "rock", "crate", "plank", "rock"][i % 7], g = new THREE.Group(); let rad = .68, len = 0;
+      if (kind === "rock") { const m = new THREE.Mesh(rockGeo, rockM); const k = .75 + rnd() * .6; m.scale.set(k, k * (.7 + rnd() * .4), k); rad = .62 * k; g.add(m); }
+      if (kind === "plank") { g.add(new THREE.Mesh(plankGeo, woodM)); rad = .26; len = 1.1; }
+      if (kind === "crate") { g.add(new THREE.Mesh(crateGeo, woodM)); rad = .66; }
+      if (kind === "chain") { for (let j = 0; j < 6; j++) { const l = new THREE.Mesh(linkGeo, ironM); l.position.x = (j - 2.5) * .34; l.rotation.x = j % 2 ? Math.PI / 2 : 0; g.add(l); } rad = .24; len = .95; }
+      g.visible = false; sinkG.add(g); K.list.push({ g, kind, rad, len, on: false }); } }
+  function sinkSpawn(prog, thrown, r0) {
+    const d = K.list.find((d) => !d.on); if (!d) return; d.on = true; d.g.visible = true; d.g.scale.setScalar(1); d.thrown = !!thrown; d.rot = Math.random() * 6.3; d.spin = (Math.random() - .5) * 2.4; d.tum = (Math.random() - .5) * 2;
+    const a = Math.random() * Math.PI * 2;
+    if (thrown) { const R = SINK_R + 3.5; d.x = Math.cos(a) * R; d.z = Math.sin(a) * R; const tx = K.x + K.vx * .6 + (Math.random() - .5) * 2 - d.x, tz = K.z + K.vz * .6 + (Math.random() - .5) * 2 - d.z, l = Math.hypot(tx, tz) || 1, sp = 6 + prog * 2.5; d.vx = tx / l * sp; d.vz = tz / l * sp; d.life = 0; }
+    else { d.r = r0 || SINK_R + 2.5; d.a = a; d.vt = 3.3 + Math.random() * 2.6 + prog * 1.4; d.vr = .55 + Math.random() * .7 + prog * .5; d.x = Math.cos(a) * d.r; d.z = Math.sin(a) * d.r; }
+  }
+  function sinkEnv(on) {
+    sinkG.visible = on; K.on = on; K.run++; man.rotation.order = on ? "YXZ" : "XYZ"; man.scale.setScalar(1); man.visible = true;
+    if (on) { scene.background.set(0x031a2c); scene.fog.color.set(0x031a2c); scene.fog.near = 7; scene.fog.far = 36; hemi.color.set(0x8fb4cc); hemi.groundColor.set(0x02080f); hemi.intensity = .34; moon.color.set(0xcfe6f5); moon.intensity = .3; }
+    else { for (const d of K.list) { d.on = false; d.g.visible = false; } man.rotation.set(0, 0, 0); applyDawn(); }
+  }
+  function startSink(again) {
+    setupChapter(0, true); S.mode = "title"; update(.016, performance.now() / 1000);      // one ordinary pass puts everything he carries away
+    Object.assign(K, { x: 4.5, z: 2, vx: 0, vz: 0, ix: 0, iz: 0, t: 0, inv: 0, grace: 0, end: 0, dead: 0, h: 0, spin: 0, spawn: 1.2, surge: 5.5 }); for (const d of K.list) { d.on = false; d.g.visible = false; }
+    sinkEnv(true); for (let i = 0; i < 4; i++) sinkSpawn(0, false, 5.5 + i * 1.6);
+    S.mode = "sink"; S.hp = 3; $("hud").hidden = false; if (isTouch) setPad(true); $("chapLabel").textContent = SINK_CARD.label; $("goalText").textContent = "Stay clear of the wreckage"; $("controls").hidden = false; syncLocks(true); setPrompt("");
+    camera.position.set(K.x * .45, SY + 13.5, K.z * .45 + 6);
+    initAudio(); if (actx) actx.resume();
+    $("toast").style.opacity = 0; toastT = 0; sfx("splash", .8); sfx("boom", .5); cornerCard(SINK_CARD);
+  }
+  function sinkHit(d) {
+    S.hp -= 1; K.inv = 1.3; K.spin = Math.PI * 2; S.flash = .6; S.hitFlash = .4; S.hitStop = .1; sfx("thud", 1) || noise(.5, 1, 700); sfx("impact", .5);
+    const dx = K.x - d.x, dz = K.z - d.z, l = Math.hypot(dx, dz) || 1; K.ix = dx / l * 6; K.iz = dz / l * 6;
+    if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {}
+    if (S.hp <= 0) { K.dead = .001; S.retries++; $("fadeNote").textContent = "Knocked out."; $("fadeTip").textContent = "Things come round from behind him. Keep away from the middle, where it all ends up.";
+      const run = K.run;
+      setTimeout(() => { if (K.run !== run) return; $("fade").classList.add("on"); $("fade").firstElementChild.classList.add("show"); }, 900);
+      setTimeout(() => { if (K.run !== run) return; $("fade").firstElementChild.classList.remove("show"); startSink(true); setTimeout(() => { $("fade").classList.remove("on"); }, 400); }, 3400); }
+    else toast(`Hit · ${S.hp} left`, 1.2);
+  }
+  function sinkUpdate(dt, t) {
+    const live = !K.end && !K.dead; S.time += dt; if (live) K.t += dt; const prog = Math.min(1, K.t / SINK_T);
+    if (K.t >= SINK_T && live) { K.end = .001; sfx("sink", .9) || sfx("deep", .8); sfx("riser", .5); }
+    if (K.end) K.end += dt; if (K.dead) K.dead += dt;
+    // swimming against the current
+    let mx = 0, mz = 0;
+    if (live) { if (keys.has("arrowleft")) mx -= 1; if (keys.has("arrowright")) mx += 1; if (keys.has("arrowup")) mz -= 1; if (keys.has("arrowdown")) mz += 1; if (stick) { mx += stick.dx; mz += stick.dy; }
+      if (window.__game.input) { mx = window.__game.input.x; mz = window.__game.input.z; } const m = Math.hypot(mx, mz); if (m > 1) { mx /= m; mz /= m; } }
+    const r = Math.hypot(K.x, K.z) || .001, ux = K.x / r, uz = K.z / r, vt = 2.2 + 1.3 * prog + (K.end ? K.end * 5 : 0), vin = .8 + 1.1 * prog + (K.end ? 3 + K.end * 3 : 0);
+    const tx = mx * 5.2 - uz * vt - ux * vin, tz = mz * 5.2 + ux * vt - uz * vin, f = Math.min(1, dt * 4);
+    K.vx += (tx - K.vx) * f; K.vz += (tz - K.vz) * f; K.x += (K.vx + K.ix) * dt; K.z += (K.vz + K.iz) * dt; const dk = Math.exp(-3 * dt); K.ix *= dk; K.iz *= dk;
+    { const r2 = Math.hypot(K.x, K.z); if (r2 > SINK_R) { K.x *= SINK_R / r2; K.z *= SINK_R / r2; } }
+    // now and then the water throws him
+    if (live && (K.surge -= dt) <= 0) { K.surge = 4.5 + Math.random() * 3 - prog * 1.5; const a = Math.random() * Math.PI * 2; K.ix = Math.cos(a) * 7.5; K.iz = Math.sin(a) * 7.5; K.spin = Math.PI * 2; K.grace = .5; S.flash = Math.max(S.flash, .3); sfx("whoosh", .5) || sfx("wave", .5); }
+    K.inv = Math.max(0, K.inv - dt); K.grace = Math.max(0, K.grace - dt); K.spin *= Math.exp(-2.6 * dt);
+    // the wreckage
+    if (live && (K.spawn -= dt) <= 0) { K.spawn = 1.3 - .6 * prog; sinkSpawn(prog, K.t > 7 && Math.random() < .25); }
+    for (const d of K.list) { if (!d.on) continue;
+      if (d.thrown) { d.x += d.vx * dt; d.z += d.vz * dt; d.life += dt; if (d.life > 1 && Math.hypot(d.x, d.z) > SINK_R + 4) { d.on = false; d.g.visible = false; continue; } }
+      else { d.a += d.vt / Math.max(d.r, 2.2) * dt; d.r -= d.vr * dt; d.x = Math.cos(d.a) * d.r; d.z = Math.sin(d.a) * d.r; if (d.r < 2) d.g.scale.setScalar(Math.max(.01, (d.r - .8) / 1.2)); if (d.r < .8) { d.on = false; d.g.visible = false; continue; } }
+      d.rot += d.spin * dt; d.g.position.set(d.x, 0, d.z); d.g.rotation.set(d.g.rotation.x + d.tum * dt * (d.len ? .3 : 1), -d.rot, 0);
+      if (live && !K.inv && !K.grace) { let px = d.x, pz = d.z; if (d.len) { const cx = Math.cos(d.rot), cz = Math.sin(d.rot), u = Math.max(-d.len, Math.min(d.len, (K.x - d.x) * cx + (K.z - d.z) * cz)); px += cx * u; pz += cz * u; }
+        if (Math.hypot(K.x - px, K.z - pz) < d.rad * d.g.scale.x + .42) sinkHit(d); } }
+    vortex.rotation.z -= dt * (.5 + prog * .5 + (K.end ? K.end : 0)); vortex2.rotation.z -= dt * (.9 + prog * .6);
+    for (let i = 0; i < BUB_N; i++) { bubA[i] += dt * (.5 + 4 / (bubR[i] + 1.5)); bub[i * 3 + 1] += dt * (.5 + (i % 5) * .12); if (bub[i * 3 + 1] > 6) bub[i * 3 + 1] = -2; bub[i * 3] = Math.cos(bubA[i]) * bubR[i]; bub[i * 3 + 2] = Math.sin(bubA[i]) * bubR[i]; } bubGeo.attributes.position.needsUpdate = true;
+    // the man: face down in the water, arms and legs working, turned over when he is thrown
+    const sv = Math.hypot(K.vx, K.vz); if (sv > .4) { let dh = Math.atan2(-K.vx, -K.vz) - K.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); K.h += dh * Math.min(1, dt * 5); }
+    const p = t * (4 + sv * .6), sinkY = K.end ? -Math.min(3, K.end * 1.6) : K.dead ? -Math.min(3, K.dead * .9) : 0, sc = 1.3 * (K.end ? Math.max(.2, 1 - K.end * .35) : 1);
+    man.rotation.set(-1.3 + Math.sin(t * 1.3) * .14, K.h, Math.sin(t * .9) * .3 + K.spin); man.scale.setScalar(sc);
+    vA.set(0, .95 * sc, 0).applyEuler(man.rotation); man.position.set(K.x - vA.x, SY + .3 + sinkY - vA.y, K.z - vA.z);
+    man.visible = !(K.inv > 0 && live && Math.floor(t * 14) % 2);
+    const limp = K.dead ? 1 : 0;
+    armL.rotation.x = limp ? 1.2 : 2.5 + Math.sin(p) * .5; armR.rotation.x = limp ? .8 : 2.5 - Math.sin(p) * .5; foreL.rotation.x = foreR.rotation.x = .3; torso.rotation.x = -.08; torso.rotation.y = 0;
+    legL.rotation.x = limp ? .3 : Math.sin(p) * .45; legR.rotation.x = limp ? -.2 : -Math.sin(p) * .45; shinL.rotation.x = -.25 - Math.max(0, Math.sin(p)) * .35; shinR.rotation.x = -.25 - Math.max(0, -Math.sin(p)) * .35; hips.position.y = .98;
+    sinkLight.position.set(K.x, 4.5, K.z + 1); moon.target.position.set(K.x, SY, K.z - 3); moon.position.set(K.x - 4, SY + 20, K.z - 7);
+    applyRigs();
+    // camera: straight down the funnel
+    const portrait = camera.aspect < .8, fx = portrait ? .8 : .45, cx = K.x * fx, cz = K.z * fx, cy = SY + (portrait ? 21 : 13.5) - (K.end ? Math.min(4, K.end * 2) : 0);
+    const sh = reduceMotion ? 0 : Math.max(0, S.flash - .2) * .6, fl = Math.min(1, dt * 4);
+    camera.position.x += (cx - camera.position.x) * fl + (Math.random() - .5) * sh; camera.position.y += (cy - camera.position.y) * fl; camera.position.z += (cz + (portrait ? 7 : 6) - camera.position.z) * fl;
+    camera.lookAt(camera.position.x, SY, camera.position.z - (portrait ? 7.5 : 6.5));
+    S.flash = Math.max(0, S.flash - dt); S.hitFlash = Math.max(0, (S.hitFlash || 0) - dt); $("flash").style.opacity = S.flash * .35; $("flash").style.background = S.hitFlash > 0 ? "var(--red)" : "#9fdcff";
+    if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").style.opacity = 0; }
+    hud(0); $("sinkBar").style.width = prog * 100 + "%";
+    // pulled down the middle, and he wakes up on the chamber floor
+    if (K.end > 1.3 && !K.faded) { K.faded = true; $("fadeNote").textContent = ""; $("fadeTip").textContent = ""; $("fade").classList.add("on"); }
+    if (K.end > 2.7) { K.faded = false; setupChapter(0, true); play(); setTimeout(() => { $("fade").classList.remove("on"); showBanner(0); }, 500); }
+  }
+
   function setupChapter(i, snap) {
+    if (K.on) sinkEnv(false);
     S.ch = i; const id = CHAPTERS[i].id;
     Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0 });
     man.rotation.set(0, 0, 0); man.position.y = 0; wolf.visible = true; wolf.scale.setScalar(.92); rage.intensity = 0; wound.scale.setScalar(0);
@@ -5394,7 +5503,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   function begin() {
     S.time = 0; S.retries = 0; initAudio();
     $("titleScreen").style.opacity = 0; $("winScreen").style.opacity = 0;
-    setTimeout(() => { titleClips(false); $("titleScreen").hidden = true; $("titleScreen").style.opacity = ""; $("winScreen").hidden = true; $("winScreen").style.opacity = ""; $("winScreen").classList.remove("in"); startChapter(0); }, 700);
+    setTimeout(() => { titleClips(false); $("titleScreen").hidden = true; $("titleScreen").style.opacity = ""; $("winScreen").hidden = true; $("winScreen").style.opacity = ""; $("winScreen").classList.remove("in"); startSink(); }, 700);
   }
   $("startBtn").addEventListener("click", begin);
   $("againBtn").addEventListener("click", begin);
@@ -5453,7 +5562,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     $("torchMeter").hidden = !S.hasTorch || (fight && id !== "berserk");
     $("dashMeter").hidden = !S.unlock || !!S.jumpCtx; { const k = S.jumpCtx ? 1 : 1 - S.dodgeCd / DASH_CD; $("dashBar").style.width = k * 100 + "%"; $("dashMeter").classList.toggle("ready", k >= 1); $("dashWhat").textContent = k >= 1 ? "Ready" : "Recovering"; $("btnDodge").style.setProperty("--cd", k); $("btnDodge").classList.toggle("cooling", k < 1); }
     $("fuel").textContent = Math.ceil(S.fuel); $("fuelBar").style.width = S.fuel + "%"; $("torchMeter").classList.toggle("low", S.fuel < 30);
-    $("hpMeter").hidden = S.ch < 1;
+    $("hpMeter").hidden = S.ch < 1 && S.mode !== "sink"; $("sinkMeter").hidden = S.mode !== "sink";
     [...$("hpPips").children].forEach((p, i) => { p.classList.toggle("on", i + 1 <= S.hp); p.classList.toggle("half", S.hp > i && S.hp < i + 1); });
     $("wolfMeter").hidden = !(id === "duel" || id === "true");
     { const wp = $("wolfPips"), max = id === "true" ? 6 : 3; while (wp.children.length < max) wp.appendChild(document.createElement("span")); while (wp.children.length > max) wp.lastChild.remove(); }
@@ -5495,6 +5604,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   function update(dt, t) {
     audioTick(dt);
     if (S.hitStop > 0) { S.hitStop -= dt; dt *= .06; }     // a beat of impact on a hit
+    if (S.mode === "sink") { sinkUpdate(dt, t); return; }
     const playing = S.mode === "play", id = CHAPTERS[S.ch].id;
     if (playing) S.time += dt;
 
@@ -6143,7 +6253,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
   function frame(now) { requestAnimationFrame(frame); if (paused || cutscene || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  window.__game = { S, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, startSink, K, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
