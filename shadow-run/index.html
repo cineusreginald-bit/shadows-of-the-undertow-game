@@ -4944,9 +4944,12 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const barkTex = canvasTex(64, 256, (g, w, h) => { g.fillStyle = "#14100e"; g.fillRect(0, 0, w, h); for (let i = 0; i < 120; i++) { g.fillStyle = `rgba(${40 + rnd() * 30 | 0},${30 + rnd() * 20 | 0},24,.6)`; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 8 + rnd() * 40); } }, [1, 2]);
   const glowTex = canvasTex(64, 64, (g, w) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(.3, "rgba(255,255,255,.5)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, w, w); });
   const smokeTex = canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,255,255,.9)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+  // a flame: the same tapered tongue as before, but each colour is laid down as many faint shrinking copies, so there is no hard edge between them
   const fireTex = canvasTex(128, 192, (g) => {
-    const cols = ["rgba(150,20,0,.10)", "rgba(215,50,5,.22)", "rgba(255,95,15,.4)", "rgba(255,150,40,.6)", "rgba(255,205,95,.8)", "rgba(255,244,205,.95)"];
-    cols.forEach((c, i) => { const k = 1 - i * .135, w = 54 * k, top = 180 - 172 * k; g.fillStyle = c; g.beginPath(); g.moveTo(64, top); g.bezierCurveTo(64 + w * .55, top + (180 - top) * .38, 64 + w * 1.05, 180 - w * .9, 64, 182); g.bezierCurveTo(64 - w * 1.05, 180 - w * .9, 64 - w * .55, top + (180 - top) * .38, 64, top); g.fill(); });
+    const tongue = (k) => { const w = 50 * k, top = 182 - 172 * k; g.beginPath(); g.moveTo(64, top); g.bezierCurveTo(64 + w * .5, top + (182 - top) * .4, 64 + w * 1.05, 182 - w * .95, 64, 184); g.bezierCurveTo(64 - w * 1.05, 182 - w * .95, 64 - w * .5, top + (182 - top) * .4, 64, top); g.fill(); };
+    g.globalCompositeOperation = "lighter";
+    for (const [k0, k1, col, al] of [[1, .7, "200,40,4", .2], [.8, .52, "255,96,16", .34], [.6, .36, "255,160,48", .5], [.42, .2, "255,222,130", .7], [.26, .08, "255,250,232", .9]]) { const n = 14; g.fillStyle = `rgba(${col},${al / n * 1.6})`; for (let i = 0; i < n; i++) tongue(k0 + (k1 - k0) * i / (n - 1)); }
+    { const r = g.createRadialGradient(64, 172, 0, 64, 172, 30); r.addColorStop(0, "rgba(120,150,255,.2)"); r.addColorStop(1, "rgba(90,120,255,0)"); g.fillStyle = r; g.fillRect(30, 140, 68, 52); }      // a breath of blue at the root
   });
   const fireMat = new THREE.SpriteMaterial({ map: fireTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
   const flameMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xff8a33, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
@@ -4954,15 +4957,49 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 
   // ============================================================ world
   const circles = [], boxes = [];   // colliders
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, 299), new THREE.MeshStandardMaterial({ map: groundTex, roughness: .72, metalness: .12, color: 0x8d949e }));
+  // ---- stone, smooth. Every rock in the cave is one of these: a sphere pushed in and out by slow waves, shaded by its own curve, with no flat faces.
+  function stoneGeo(detail, s0, cuts) {      // a block cut by a handful of planes, then every edge and corner worn round: broad faces, soft shoulders, no polygons showing
+    const g = new THREE.IcosahedronGeometry(1, detail), P = g.attributes.position, N = g.attributes.normal, C = new Float32Array(P.count * 3);
+    const h = (n) => { const v = Math.sin(n * 127.1 + s0 * 311.7) * 43758.5453; return v - Math.floor(v); }, pl = [[0, -1, 0, .62], [0, 1, 0, .78 + h(1) * .2], [1, 0, 0, .86 + h(5) * .16], [-1, 0, 0, .86 + h(6) * .16], [0, 0, 1, .86 + h(7) * .16], [0, 0, -1, .86 + h(8) * .16]];      // boxed in on six sides first, so no direction runs away
+    for (let k = 0; k < cuts; k++) { const u = h(k * 3 + 2) * 2 - 1, a = h(k * 3 + 3) * 6.2832, q = Math.sqrt(1 - u * u * .49); pl.push([Math.cos(a) * q, u * .7, Math.sin(a) * q, .7 + h(k * 3 + 14) * .26]); }
+    const R = (x, y, z) => { let sum = 0; for (const p of pl) { const d = (x * p[0] + y * p[1] + z * p[2]) / p[3]; if (d > 0) sum += Math.pow(d, 9); } return Math.pow(sum, -1 / 9) * (1 + Math.sin(x * 5.3 + s0) * Math.sin(z * 4.7 + y * 3.1 + s0) * .025); };
+    const at = (x, y, z, o) => { const l = Math.hypot(x, y, z) || 1; x /= l; y /= l; z /= l; const r = R(x, y, z); o[0] = x * r; o[1] = y * r; o[2] = z * r; return r; };
+    const a = [0, 0, 0], b = [0, 0, 0], c = [0, 0, 0], e = .03;
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i); at(x, y, z, a);
+      let tx = -z, ty = 0, tz = x; if (Math.abs(y) > .95) { tx = 0; ty = -z; tz = y; } const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+      const ux = y * tz - z * ty, uy = z * tx - x * tz, uz = x * ty - y * tx;
+      at(x + tx * e, y + ty * e, z + tz * e, b); at(x + ux * e, y + uy * e, z + uz * e, c);
+      const e1x = b[0] - a[0], e1y = b[1] - a[1], e1z = b[2] - a[2], e2x = c[0] - a[0], e2y = c[1] - a[1], e2z = c[2] - a[2];
+      let nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x; const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl; if (nx * x + ny * y + nz * z < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      P.setXYZ(i, a[0], a[1], a[2]); N.setXYZ(i, nx, ny, nz);
+      const k = .8 + ny * .12 + Math.sin(a[0] * 7 + a[2] * 5 + s0) * .05; C[i * 3] = k; C[i * 3 + 1] = k; C[i * 3 + 2] = k * 1.03; }
+    g.setAttribute("color", new THREE.BufferAttribute(C, 3)); g.computeBoundingSphere(); return g;
+  }
+  const BOULDERS = [stoneGeo(4, 1.3, 9), stoneGeo(4, 4.1, 11), stoneGeo(4, 7.7, 8), stoneGeo(4, 11.2, 12)], PEBBLE = stoneGeo(2, 2.2, 7), COBBLE = stoneGeo(3, 5.5, 8);
+  const rockTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#3b3836"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { const x = rnd() * w, y = rnd() * h, r = 6 + rnd() * 30, v = rnd() < .5 ? 14 : 96, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${v},${v},${v},${.05 + rnd() * .09})`); gr.addColorStop(1, `rgba(${v},${v},${v},0)`); g.fillStyle = gr; for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); } }, [1, 1]);
+  // a dressed block with its edges worn round, for the standing stones and the altar
+  function slabGeo(w, h, d, round) {
+    const g = new THREE.BoxGeometry(w, h, d, 8, 12, 8), P = g.attributes.position, N = g.attributes.normal, hx = w / 2, hy = h / 2, hz = d / 2, r = Math.min(round, hx, hz), ease = (t) => Math.sign(t) * Math.pow(Math.abs(t), .55);
+    for (let i = 0; i < P.count; i++) { let x = ease(P.getX(i) / hx) * hx, y = ease(P.getY(i) / hy) * hy, z = ease(P.getZ(i) / hz) * hz;
+      const qx = Math.max(-hx + r, Math.min(hx - r, x)), qy = Math.max(-hy + r, Math.min(hy - r, y)), qz = Math.max(-hz + r, Math.min(hz - r, z)); let dx = x - qx, dy = y - qy, dz = z - qz; const l = Math.hypot(dx, dy, dz);
+      if (l > 1e-5) { dx /= l; dy /= l; dz /= l; x = qx + dx * r; y = qy + dy * r; z = qz + dz * r; N.setXYZ(i, dx, dy, dz); }
+      const tp = 1 - (y / hy + 1) * .06, wob = 1 + Math.sin(y * 1.7 + w * 9) * .03; P.setXYZ(i, x * tp * wob, y, z * tp); }
+    return g;
+  }
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, 299), new THREE.MeshStandardMaterial({ map: groundTex, bumpMap: groundTex, bumpScale: .02, roughness: .72, metalness: .12, color: 0x8d949e }));
   ground.rotation.x = -Math.PI / 2; ground.position.z = -113.5; scene.add(ground);
   const waterGeo = new THREE.PlaneGeometry(90, 130, 50, 70);
   const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ color: 0x0a2740, roughness: .42, metalness: .35, emissive: 0x05182b, emissiveIntensity: .7, transparent: true, opacity: .93 }));
   water.rotation.x = -Math.PI / 2; water.position.set(0, -.14, SHORE_Z - 65); scene.add(water);
   const waterBase = waterGeo.attributes.position.array.slice();
+  // the shore: wet ground running out under the water and a line of foam, instead of a ruled edge
+  { const shoreTex = canvasTex(64, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(9,9,10,0)"); gr.addColorStop(.45, "rgba(9,9,10,.55)"); gr.addColorStop(.8, "rgba(10,9,9,.95)"); gr.addColorStop(1, "rgba(10,9,9,1)"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      const f = g.createLinearGradient(0, h * .5, 0, h * .78); f.addColorStop(0, "rgba(150,195,230,0)"); f.addColorStop(.6, "rgba(150,195,230,.2)"); f.addColorStop(1, "rgba(150,195,230,0)"); g.fillStyle = f; g.fillRect(0, h * .5, w, h * .28); });
+    const shore = new THREE.Mesh(new THREE.PlaneGeometry(90, 7), new THREE.MeshBasicMaterial({ map: shoreTex, transparent: true, depthWrite: false })); shore.rotation.x = -Math.PI / 2; shore.position.set(0, -.1, SHORE_Z - 3.4); shore.renderOrder = 2; scene.add(shore); }
 
   // --- the cell: stone walls, a barred window, rubble, a gap in the north wall
-  const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 1, color: 0x9a918a });
+  const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex, bumpMap: stoneTex, bumpScale: .035, roughness: .95, color: 0x9a918a });
   function wall(x0, z0, x1, z1, h) { const w = Math.max(.6, x1 - x0), d = Math.max(.6, z1 - z0); const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set((x0 + x1) / 2, h / 2, (z0 + z1) / 2); scene.add(m); boxes.push({ x0: (x0 + x1) / 2 - w / 2, x1: (x0 + x1) / 2 + w / 2, z0: (z0 + z1) / 2 - d / 2, z1: (z0 + z1) / 2 + d / 2 }); return m; }
   wall(CELL.x0 - .6, CELL.z0, CELL.x0, CELL.z1, 2.6);                 // west
   wall(CELL.x1, CELL.z0, CELL.x1 + .6, -1.6, 2.6); wall(CELL.x1, .4, CELL.x1 + .6, CELL.z1, 2.6);   // east, with the window between
@@ -4970,10 +5007,10 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   for (let i = 0; i < 4; i++) { const bar = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 1.6, 6), new THREE.MeshStandardMaterial({ color: 0x3a3634, metalness: .7, roughness: .5 })); bar.position.set(CELL.x1 + .3, 1.8, -1.35 + i * .5); scene.add(bar); }
   wall(CELL.x0 - .6, CELL.z1, CELL.x1 + .6, CELL.z1 + .6, .7);        // south, cut down like a stage set so the camera can see in
   wall(CELL.x0 - .6, CELL.z0 - .6, CELL.gapX0, CELL.z0, 2.6); wall(CELL.gapX1, CELL.z0 - .6, CELL.x1 + .6, CELL.z0, 2.6);   // north, with the collapsed gap
-  const rubbleMat = new THREE.MeshStandardMaterial({ color: 0x302b28, roughness: 1, flatShading: true });
+  const rubbleMat = new THREE.MeshStandardMaterial({ color: 0xc8c0b8, map: rockTex, bumpMap: rockTex, bumpScale: .04, roughness: .88, metalness: .05, vertexColors: true });
   // rubble that turns the room into a short route: start south-west, around the fallen block, out the gap
   for (const [x, z, s] of [[-1.2, -1.2, 1.2], [.2, -1.6, 1.0], [1.4, -1.0, .9], [-3.2, -2.6, .8], [2.2, 2.4, .9], [3.6, 1.6, .7], [4.4, -4.2, .55], [1.6, -4.3, .6]]) {
-    const r = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), rubbleMat); r.position.set(x, s * .5, z); r.rotation.set(rnd(), rnd(), rnd()); scene.add(r); circles.push({ x, z, r: s * .9 });
+    const r = new THREE.Mesh(BOULDERS[(x * 7 + z * 3 & 3)], rubbleMat); r.scale.set(s, s, s); r.position.set(x, s * .5, z); r.rotation.set((rnd() - .5) * .5, rnd() * 6.3, (rnd() - .5) * .5); scene.add(r); circles.push({ x, z, r: s * .9 });
   }
   const beam = new THREE.Mesh(new THREE.BoxGeometry(5.2, .4, .5), new THREE.MeshStandardMaterial({ map: barkTex, color: 0x6a5a50 })); beam.position.set(-.3, .25, -1.3); beam.rotation.y = .1; scene.add(beam); boxes.push({ x0: -2.9, x1: 2.3, z0: -1.6, z1: -1.0 });
   const chainPost = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, 1.4, 8), new THREE.MeshStandardMaterial({ color: 0x3a3634, metalness: .7, roughness: .5 })); chainPost.position.set(-3, .7, 3.4); scene.add(chainPost); circles.push({ x: -3, z: 3.4, r: .2 });
@@ -4991,9 +5028,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const gapGlow = new THREE.PointLight(0xff7a2e, 1.4, 7, 2); gapGlow.position.set(3.4, 1.2, CELL.z0 - 2); scene.add(gapGlow);
 
   // --- the village path north of the cell: burnt forest walls, stumps, ruins
-  const trunkGeo = new THREE.CylinderGeometry(.12, 1.0, 9, 7, 5); trunkGeo.translate(0, 4.5, 0);
+  const trunkGeo = new THREE.CylinderGeometry(.12, 1.0, 9, 14, 9); trunkGeo.translate(0, 4.5, 0);
   { const a = trunkGeo.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), k = 1 + Math.sin(y * 2.3 + a.getX(i) * 4) * .22 + Math.cos(y * 1.1 + a.getZ(i) * 5) * .16; a.setX(i, a.getX(i) * k + Math.sin(y * .7) * .25); a.setZ(i, a.getZ(i) * k); } trunkGeo.computeVertexNormals(); }
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x23262c, roughness: .62, metalness: .15, flatShading: true });
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8a9099, roughness: .7, metalness: .12, map: rockTex });
   const branchGeo = new THREE.CylinderGeometry(.04, .1, 2.6, 5); branchGeo.translate(0, 1.3, 0);
   function tree(x, z, stump) {
     const t = new THREE.Group(); t.add(new THREE.Mesh(trunkGeo, trunkMat));
@@ -5011,9 +5048,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     const g = new THREE.Group(), w = 2.4 + rnd() * 1.2; let z = -24 - i * 30 - rnd() * 8; const x = (i % 2 ? 1 : -1) * (4 + rnd() * 4);
     if (inShrine(x, z, 4)) z -= 26;
     const ry = rnd() * 6.28, cs = Math.cos(ry), sn = Math.sin(ry), side = w * .78;
-    for (const sx of [-1, 1]) { for (const [dz, r0, y0] of [[-.45, 1.0, .75], [.5, .9, .65], [0, .7, 1.75]]) { const b = new THREE.Mesh(new THREE.DodecahedronGeometry(r0 * (.9 + rnd() * .25), 0), rubbleMat); b.position.set(sx * (side + (y0 > 1 ? -.25 : rnd() * .2)), y0, dz * w * .7); b.scale.y = 1.25; b.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); b.castShadow = b.receiveShadow = true; g.add(b); }
+    for (const sx of [-1, 1]) { for (const [dz, r0, y0] of [[-.45, 1.0, .75], [.5, .9, .65], [0, .7, 1.75]]) { const b = new THREE.Mesh(BOULDERS[(i + (sx > 0 ? 1 : 0) + (y0 > 1 ? 2 : 0)) & 3], rubbleMat), br = r0 * (.9 + rnd() * .25); b.position.set(sx * (side + (y0 > 1 ? -.25 : rnd() * .2)), y0, dz * w * .7); b.scale.set(br, br * 1.25, br); b.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); b.castShadow = b.receiveShadow = true; g.add(b); }
       const lx = sx * (side + .15); circles.push({ x: x + cs * lx, z: z - sn * lx, r: .95 }); }
-    for (let k = 0; k < 3; k++) { const slab = new THREE.Mesh(new THREE.DodecahedronGeometry(w * (.62 - k * .12), 0), rubbleMat); slab.scale.set(1.5 - k * .2, .32, 1.15); slab.position.set((rnd() - .5) * .5, 2.5 + k * .28, (rnd() - .5) * .5); slab.rotation.y = rnd() * 3; slab.rotation.z = (rnd() - .5) * .16; slab.castShadow = true; g.add(slab); }
+    for (let k = 0; k < 3; k++) { const slab = new THREE.Mesh(BOULDERS[(i + k) & 3], rubbleMat), sr = w * (.62 - k * .12); slab.scale.set(sr * (1.5 - k * .2), sr * .34, sr * 1.15); slab.position.set((rnd() - .5) * .5, 2.5 + k * .28, (rnd() - .5) * .5); slab.rotation.y = rnd() * 3; slab.rotation.z = (rnd() - .5) * .16; slab.castShadow = true; g.add(slab); }
     const em = new THREE.Sprite(flameMat.clone()); em.position.set(0, .6, 0); em.scale.set(2.4, 1.4, 1); em.material.opacity = .5; g.add(em);
     g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g); huts.push({ x, z, r: w * .95, em });
   }
@@ -5021,8 +5058,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   // --- standing water on the path: it shines under the torch, and he slides on it
   const puddles = []; { const pm = new THREE.MeshStandardMaterial({ color: 0x0b1320, roughness: .06, metalness: .85, transparent: true, opacity: .92 });
     for (let i = 0; i < 18; i++) { const z = -22 - i * 13 - rnd() * 6, x = (rnd() - .5) * 11, rx = 1.3 + rnd() * 1.5, rz = 1.0 + rnd() * 1.3; if (z < SHORE_Z + 8 || inShrine(x, z, 5) || huts.some((h) => Math.hypot(h.x - x, h.z - z) < h.r + 3)) continue;
-      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 20), pm); m.rotation.x = -Math.PI / 2; m.scale.set(rx, rz, 1); m.position.set(x, .025, z); m.receiveShadow = true; scene.add(m);
-      const m2 = new THREE.Mesh(new THREE.CircleGeometry(1, 14), pm); m2.rotation.x = -Math.PI / 2; m2.scale.set(rx * .55, rz * .6, 1); m2.position.set(x + rx * .7, .024, z + rz * .45); scene.add(m2); puddles.push({ x, z, rx, rz }); } }
+      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 40), pm); m.rotation.x = -Math.PI / 2; m.scale.set(rx, rz, 1); m.position.set(x, .025, z); m.receiveShadow = true; scene.add(m);
+      const m2 = new THREE.Mesh(new THREE.CircleGeometry(1, 32), pm); m2.rotation.x = -Math.PI / 2; m2.scale.set(rx * .55, rz * .6, 1); m2.position.set(x + rx * .7, .024, z + rz * .45); scene.add(m2); puddles.push({ x, z, rx, rz }); } }
   // --- the burning post where the torch waits
   const postMesh = new THREE.Mesh(new THREE.CylinderGeometry(.14, .18, 2.2, 8), new THREE.MeshStandardMaterial({ map: barkTex, color: 0x8a7a70 })); postMesh.position.set(POST.x, 1.1, POST.z); scene.add(postMesh); circles.push({ x: POST.x, z: POST.z, r: .3 });
   const postFlame = new THREE.Sprite(fireMat.clone()); postFlame.position.set(POST.x, 2.5, POST.z); postFlame.scale.set(1.4, 2, 1); scene.add(postFlame);
@@ -5030,13 +5067,13 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const postLight = new THREE.PointLight(0xff8a3a, 2.2, 12, 2); postLight.position.set(POST.x, 2.4, POST.z); scene.add(postLight);
 
   // --- the shrine: a ring of standing stones, an altar, the spear
-  const stoneMat = new THREE.MeshStandardMaterial({ map: stoneTex, color: 0x7a726c, roughness: 1, flatShading: true });
+  const stoneMat = new THREE.MeshStandardMaterial({ map: rockTex, bumpMap: rockTex, bumpScale: .03, color: 0x9a918a, roughness: .95 });
   for (let i = 0; i < 14; i++) {
     const a = i / 14 * Math.PI * 2; if (Math.abs(Math.sin(a)) > .97) continue;   // gaps north and south
-    const st = new THREE.Mesh(new THREE.BoxGeometry(.9, 2.6 + rnd() * 1.4, .6), stoneMat); const x = SHRINE.x + Math.cos(a) * SHRINE.r, z = SHRINE.z + Math.sin(a) * SHRINE.r;
+    const st = new THREE.Mesh(slabGeo(.95, 2.6 + rnd() * 1.4, .66, .2), stoneMat); const x = SHRINE.x + Math.cos(a) * SHRINE.r, z = SHRINE.z + Math.sin(a) * SHRINE.r;
     st.position.set(x, 1.3, z); st.rotation.y = -a; st.rotation.z = (rnd() - .5) * .15; scene.add(st); circles.push({ x, z, r: .6 });
   }
-  const altar = new THREE.Mesh(new THREE.BoxGeometry(1.6, .8, .9), stoneMat); altar.position.set(SPEAR.x, .4, SPEAR.z - .4); scene.add(altar); boxes.push({ x0: SPEAR.x - .8, x1: SPEAR.x + .8, z0: SPEAR.z - .85, z1: SPEAR.z + .05 });
+  const altar = new THREE.Mesh(slabGeo(1.66, .84, .95, .14), stoneMat); altar.position.set(SPEAR.x, .4, SPEAR.z - .4); scene.add(altar); boxes.push({ x0: SPEAR.x - .8, x1: SPEAR.x + .8, z0: SPEAR.z - .85, z1: SPEAR.z + .05 });
   const spearMat = new THREE.MeshStandardMaterial({ color: 0x4a3420, roughness: .8 });
   const tipMat = new THREE.MeshStandardMaterial({ color: 0xc9c3b8, metalness: .9, roughness: .25, emissive: 0x3a1a0a, emissiveIntensity: .6 });
   function makeSpear() { const g = new THREE.Group(); const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.025, .03, 2.1, 6), spearMat); g.add(shaft); const tip = new THREE.Mesh(new THREE.ConeGeometry(.06, .34, 6), tipMat); tip.position.y = 1.2; g.add(tip); return g; }
@@ -5047,15 +5084,15 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, f = new THREE.Sprite(fireMat.clone()); f.position.set(SHRINE.x + Math.cos(a) * (SHRINE.r - 1), .8, SHRINE.z + Math.sin(a) * (SHRINE.r - 1)); f.scale.set(1.4, 2, 1); f.userData.p = rnd() * 10; fireRing.add(f); }
 
   // --- fire pits and kindling along the path
-  const pitStone = new THREE.MeshStandardMaterial({ color: 0x2b2522, roughness: 1, flatShading: true });
+  const pitStone = new THREE.MeshStandardMaterial({ color: 0xb0a8a0, map: rockTex, roughness: .95, vertexColors: true });
   const pits = [];
   function makePit(x, z) {
     const g = new THREE.Group();
-    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28, s = new THREE.Mesh(new THREE.DodecahedronGeometry(.22, 0), pitStone); s.position.set(Math.cos(a) * .6, .14, Math.sin(a) * .6); g.add(s); }
-    const coal = new THREE.Mesh(new THREE.CylinderGeometry(.45, .5, .12, 10), new THREE.MeshBasicMaterial({ color: 0x3a1206 })); coal.position.y = .08; g.add(coal);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28, s = new THREE.Mesh(COBBLE, pitStone), sr = .2 + (i % 3) * .03; s.scale.set(sr * 1.15, sr * .85, sr); s.rotation.y = a + i; s.position.set(Math.cos(a) * .6, .13, Math.sin(a) * .6); g.add(s); }
+    const coal = new THREE.Mesh(new THREE.CylinderGeometry(.45, .5, .12, 24), new THREE.MeshBasicMaterial({ color: 0x3a1206 })); coal.position.y = .08; g.add(coal);
     const flame = new THREE.Sprite(fireMat.clone()); flame.position.y = 1.15; flame.scale.set(1.9, 2.9, 1); g.add(flame);
     const flame2 = new THREE.Sprite(fireMat.clone()); flame2.position.y = .8; flame2.scale.set(1.1, 1.7, 1); flame2.material.color.set(0xffd27a); g.add(flame2);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(PIT_R - .06, PIT_R, 64), ringMat.clone()); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(PIT_R - .06, PIT_R, 96), ringMat.clone()); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
     g.position.set(x, 0, z); scene.add(g);
     const p = { g, x, z, lit: false, coal, flame, flame2, ring, glow: 0, phase: rnd() * 10 }; pits.push(p); circles.push({ x, z, r: .75 }); return p;
   }
@@ -5084,6 +5121,30 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     pts.userData.v = v; pts.frustumCulled = false; scene.add(pts); return pts;
   }
   const embers = makePoints(260, 0xff7a33, .13, true, 1), ash = makePoints(200, 0x9a948d, .1, false, .45);
+  // every flame in the cave: found once, then each gets a soft halo and gives off wisps (see fireTick)
+  const fires = [], WISP_N = isTouch ? 320 : 560, wispPos = new Float32Array(WISP_N * 3), wispCol = new Float32Array(WISP_N * 3), wispV = new Float32Array(WISP_N * 4), wispGeo = new THREE.BufferGeometry(); let wispI = 0;
+  wispGeo.setAttribute("position", new THREE.BufferAttribute(wispPos, 3)); wispGeo.setAttribute("color", new THREE.BufferAttribute(wispCol, 3)); for (let i = 0; i < WISP_N; i++) wispPos[i * 3 + 1] = -50;
+  const wispPts = new THREE.Points(wispGeo, new THREE.PointsMaterial({ size: .2, map: glowTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); wispPts.frustumCulled = false; scene.add(wispPts);
+  const haloMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xff7a2a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .22 });
+  const mist = makePoints(isTouch ? 14 : 34, 0x6f7c96, isTouch ? 6 : 7, false, .05); mist.material.map = smokeTex; { const p = mist.geometry.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, .3 + rnd() * .9); }
+  const fV = new THREE.Vector3(), fS = new THREE.Vector3();
+  function findFires() { scene.traverse((o) => { if (o.isSprite && o.material.map === fireTex) { const halo = new THREE.Sprite(haloMat.clone()); o.parent.add(halo); fires.push({ f: o, halo, ph: fires.length * 1.7, acc: 0 }); } }); }
+  function shown(o) { for (; o; o = o.parent) if (!o.visible) return false; return true; }
+  function fireTick(dt, t) {
+    for (const F of fires) { const f = F.f, on = f.material.opacity > .05 && shown(f); F.halo.visible = on; if (!on) continue;
+      f.material.rotation = Math.sin(t * 2.3 + F.ph) * .07 + Math.sin(t * 5.1 + F.ph * 2) * .03;                                   // the flame leans and rights itself
+      const sx = f.scale.x, sy = f.scale.y; F.halo.position.copy(f.position); F.halo.position.y -= sy * .08; F.halo.scale.set(sx * 2.4, sy * 1.7, 1); F.halo.material.opacity = .16 * f.material.opacity * (.85 + .15 * Math.sin(t * 6 + F.ph));
+      f.getWorldPosition(fV); if (Math.abs(fV.x - S.x) > 22 || Math.abs(fV.z - S.z) > 24) continue; f.getWorldScale(fS);
+      F.acc += dt * (2.5 + fS.y * 2.2) * f.material.opacity;
+      while (F.acc >= 1) { F.acc -= 1; const i = wispI = (wispI + 1) % WISP_N; wispPos[i * 3] = fV.x + (Math.random() - .5) * fS.x * .28; wispPos[i * 3 + 1] = fV.y - fS.y * .22 + Math.random() * fS.y * .3; wispPos[i * 3 + 2] = fV.z + (Math.random() - .5) * fS.x * .28;
+        wispV[i * 4] = .5 + Math.random() * .9 + fS.y * .35; wispV[i * 4 + 1] = Math.random() * 6.28; wispV[i * 4 + 2] = 1; wispV[i * 4 + 3] = .75 + Math.random() * .9; } }
+    for (let i = 0; i < WISP_N; i++) { let life = wispV[i * 4 + 2]; if (life <= 0) continue; life -= dt / wispV[i * 4 + 3]; wispV[i * 4 + 2] = life;
+      if (life <= 0) { wispPos[i * 3 + 1] = -50; wispCol[i * 3] = wispCol[i * 3 + 1] = wispCol[i * 3 + 2] = 0; continue; }
+      const ph = wispV[i * 4 + 1]; wispPos[i * 3 + 1] += wispV[i * 4] * dt; wispPos[i * 3] += Math.sin(t * 2.4 + ph) * .35 * dt; wispPos[i * 3 + 2] += Math.cos(t * 1.9 + ph) * .3 * dt;
+      const a = Math.sin(Math.min(1, (1 - life) * 4) * 1.5708) * life * .85; wispCol[i * 3] = a; wispCol[i * 3 + 1] = a * (.25 + life * .55); wispCol[i * 3 + 2] = a * life * life * .35; }      // white-gold at the flame, cooling to a red thread
+    wispGeo.attributes.position.needsUpdate = true; wispGeo.attributes.color.needsUpdate = true;
+    { const p = mist.geometry.attributes.position, v = mist.userData.v; for (let i = 0; i < p.count; i++) { let x = p.getX(i) + Math.sin(t * .12 + i) * .18 * dt * v[i], z = p.getZ(i) + .1 * dt * v[i]; if (x - S.x > 18) x -= 36; if (x - S.x < -18) x += 36; if (z - S.z > 10) z -= 38; if (z - S.z < -28) z += 38; p.setX(i, x); p.setZ(i, z); } p.needsUpdate = true; mist.visible = S.dawn < .5; }
+  }
 
   // ============================================================ the man
   const skin = new THREE.MeshStandardMaterial({ color: 0x4d2c1d, roughness: .58, metalness: 0 });
@@ -5192,18 +5253,18 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 
   // ---- ground cover: pebbles and dry grass, so the path isn't bare
   { const dummy = new THREE.Object3D();
-    const peb = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(.13, 0), new THREE.MeshStandardMaterial({ color: 0x2b2725, roughness: 1, flatShading: true }), 420);
-    for (let i = 0; i < 420; i++) { dummy.position.set((rnd() * 2 - 1) * (HALF_W + 4), .03, -6 - rnd() * (-SHORE_Z - 8)); dummy.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); dummy.scale.setScalar(.5 + rnd() * 1.6); dummy.updateMatrix(); peb.setMatrixAt(i, dummy.matrix); } scene.add(peb);
+    const peb = new THREE.InstancedMesh(PEBBLE, new THREE.MeshStandardMaterial({ color: 0xb4aca6, map: rockTex, roughness: .95, vertexColors: true }), 420);
+    for (let i = 0; i < 420; i++) { dummy.position.set((rnd() * 2 - 1) * (HALF_W + 4), .03, -6 - rnd() * (-SHORE_Z - 8)); dummy.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); { const ps = .13 * (.5 + rnd() * 1.6); dummy.scale.set(ps * 1.1, ps * .8, ps); } dummy.updateMatrix(); peb.setMatrixAt(i, dummy.matrix); } scene.add(peb);
     const grass = new THREE.InstancedMesh(new THREE.ConeGeometry(.035, .5, 4), new THREE.MeshStandardMaterial({ color: 0x4a4230, roughness: 1 }), 2600);
     for (let i = 0; i < 2600; i += 4) { const gx = (rnd() * 2 - 1) * (HALF_W + 6), gz = -6 - rnd() * (-SHORE_Z - 8); if (Math.abs(gx) < 1.4 && rnd() < .8) { for (let k = 0; k < 4; k++) { dummy.scale.setScalar(0); dummy.updateMatrix(); grass.setMatrixAt(i + k, dummy.matrix); } continue; }
       for (let k = 0; k < 4; k++) { dummy.position.set(gx + (rnd() - .5) * .3, .2, gz + (rnd() - .5) * .3); dummy.rotation.set((rnd() - .5) * .7, rnd() * 3, (rnd() - .5) * .7); dummy.scale.set(1, .6 + rnd() * .9, 1); dummy.updateMatrix(); grass.setMatrixAt(i + k, dummy.matrix); } } scene.add(grass); }
   // ---- the crossing: stones in the water that sink under him
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x33373e, roughness: .8, emissive: 0x0b1118, flatShading: true });
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0xa3acba, roughness: .62, metalness: .08, emissive: 0x0b1118, map: rockTex });
   const PATH_N = 17;      // the first 17 stones are the way across, in order; the other 14 lead nowhere
   const ROCKS = [[2.05, -265.83, 1.28], [-1.38, -268.56, 1.25], [-5.67, -267.79, 1.34], [-6.94, -271.93, 1.23], [-3.89, -275.22, 1.32], [-1.67, -279.32, 1.29], [3.09, -279.71, 1.23], [7.65, -281.22, 1.31], [7.78, -285.65, 1.23], [3.33, -286.35, 1.3], [2.24, -290.57, 1.23], [-2.26, -290.64, 1.24], [-3.35, -294.82, 1.3], [-8.17, -295.03, 1.37], [-9.22, -299.6, 1.24], [-6.42, -303.27, 1.26], [-5.78, -307.91, 1.33], [0.44, -296.96, 1.39], [0.19, -301.51, 1.32], [3.71, -304.12, 1.29], [-9.14, -275.55, 1.4], [-9.0, -279.85, 1.23], [8.89, -290.37, 1.37], [-8.68, -284.61, 1.27], [0.81, -272.44, 1.25], [-3.03, -283.72, 1.24], [4.78, -298.82, 1.28], [9.13, -294.86, 1.37], [9.07, -300.38, 1.25], [5.21, -273.77, 1.32], [9.32, -275.7, 1.34]]                                                                                                              // stones that lead nowhere
-    .map(([x, z, r]) => { const geo = new THREE.CylinderGeometry(r * .93, r * 1.28, .8, 12, 2); { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), px = a.getX(i), pz = a.getZ(i), n = 1 + Math.sin(px * 5.1 + z) * .06 + Math.cos(pz * 4.3 + x) * .06; a.setX(i, px * n); a.setZ(i, pz * n); if (y < .39) a.setY(i, y + Math.sin(px * 3 + pz * 2) * .05); } geo.computeVertexNormals(); }
+    .map(([x, z, r]) => { const geo = new THREE.CylinderGeometry(r * .93, r * 1.28, .8, 36, 5); { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), px = a.getX(i), pz = a.getZ(i), n = 1 + Math.sin(px * 5.1 + z) * .06 + Math.cos(pz * 4.3 + x) * .06; a.setX(i, px * n); a.setZ(i, pz * n); if (y < .39) a.setY(i, y + Math.sin(px * 3 + pz * 2) * .05); } geo.computeVertexNormals(); }
       const m = new THREE.Mesh(geo, rockMat); m.position.set(x, -.2, z); m.rotation.y = rnd() * 3; scene.add(m);
-      const foam = new THREE.Mesh(new THREE.RingGeometry(r * 1.22, r * 1.42, 28), new THREE.MeshBasicMaterial({ color: 0x9fc4e8, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false })); foam.rotation.x = -Math.PI / 2; foam.position.y = .1; m.add(foam); return { x, z, r, m, t: 0, sunk: 0 }; });
+      const foam = new THREE.Mesh(new THREE.RingGeometry(r * 1.22, r * 1.42, 56), new THREE.MeshBasicMaterial({ color: 0x9fc4e8, transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false })); foam.rotation.x = -Math.PI / 2; foam.position.y = .1; m.add(foam); return { x, z, r, m, t: 0, sunk: 0 }; });
   // where the next leap will land: a ring on the stone and an arc to it
   const leapRing = new THREE.Mesh(new THREE.RingGeometry(.78, .95, 44), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })); leapRing.rotation.x = -Math.PI / 2; leapRing.visible = false; leapRing.renderOrder = 10; scene.add(leapRing);
   const ARC_N = 14, arcGeo = new THREE.BufferGeometry(); arcGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ARC_N * 3), 3));
@@ -5234,12 +5295,12 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   { const blob = new THREE.Mesh(new THREE.CircleGeometry(2.3, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .6, depthWrite: false })); blob.rotation.x = -Math.PI / 2; underEyes.add(blob);
     [[-.18, .13], [.18, .13], [0, .28], [-.31, .27], [.31, .27], [-.09, -.01], [.09, -.01]].forEach(([x, y]) => { const sp = new THREE.Sprite(eyeHaloMat.clone()); sp.position.set(x * 2.4, .06, -y * 2.4); sp.scale.setScalar(.75); underEyes.add(sp); }); }
   // ---- the island
-  const islandMesh = new THREE.Mesh(new THREE.CylinderGeometry(ISLAND.r, ISLAND.r + 1.4, .6, 44), new THREE.MeshStandardMaterial({ map: stoneTex, color: 0x8a8782, roughness: .6, metalness: .1 })); islandMesh.position.set(ISLAND.x, -.22, ISLAND.z); scene.add(islandMesh);
-  for (let i = 0; i < 9; i++) { const a = .6 + i * .7, m = new THREE.Mesh(new THREE.BoxGeometry(.7, 2.2 + rnd() * 1.6, .7), wallMat); m.position.set(ISLAND.x + Math.cos(a) * (ISLAND.r - .2), 1, ISLAND.z + Math.sin(a) * (ISLAND.r - .2)); m.rotation.y = rnd() * 3; if (Math.abs(m.position.x - DOOR.x) > 2.4 || m.position.z > DOOR.z + 3) scene.add(m); }
+  const islandMesh = new THREE.Mesh(new THREE.CylinderGeometry(ISLAND.r, ISLAND.r + 1.4, .6, 96), new THREE.MeshStandardMaterial({ map: rockTex, color: 0xa6a39c, roughness: .7, metalness: .08 })); islandMesh.position.set(ISLAND.x, -.22, ISLAND.z); scene.add(islandMesh);
+  for (let i = 0; i < 9; i++) { const a = .6 + i * .7, m = new THREE.Mesh(slabGeo(.78, 2.2 + rnd() * 1.6, .78, .22), stoneMat); m.position.set(ISLAND.x + Math.cos(a) * (ISLAND.r - .2), 1, ISLAND.z + Math.sin(a) * (ISLAND.r - .2)); m.rotation.y = rnd() * 3; if (Math.abs(m.position.x - DOOR.x) > 2.4 || m.position.z > DOOR.z + 3) scene.add(m); }
   // the mask the masked figures wore, on a stone
   const maskMat = new THREE.MeshStandardMaterial({ color: 0xdfe3e8, metalness: .85, roughness: .28, emissive: 0x3a4048 });
   function makeMask(sc) { const g = new THREE.Group(); const face = new THREE.Mesh(new THREE.SphereGeometry(.15, 14, 12), maskMat); face.scale.set(.95, 1.2, .5); g.add(face); for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.032, 8, 6), new THREE.MeshBasicMaterial({ color: 0x040404 })); e.position.set(sx * .055, .04, -.066); e.scale.set(1.4, .75, .5); g.add(e); } g.scale.setScalar(sc); return g; }
-  const MASK_WAIT = 14, PED_H = 1.05, plinth = new THREE.Group(); { const drum = new THREE.Mesh(new THREE.CylinderGeometry(.95, 1.12, PED_H, 22), stoneMat), cap = new THREE.Mesh(new THREE.CylinderGeometry(1.06, 1.06, .12, 22), stoneMat), band = new THREE.Mesh(new THREE.TorusGeometry(1.0, .05, 6, 28), chainMat); drum.position.y = PED_H / 2; cap.position.y = PED_H; band.rotation.x = Math.PI / 2; band.position.y = PED_H * .55; [drum, cap].forEach((m) => { m.castShadow = m.receiveShadow = true; }); plinth.add(drum, cap, band); } plinth.position.set(MASK.x, -PED_H - .2, MASK.z); scene.add(plinth); const pedCircle = { x: MASK.x, z: MASK.z, r: 0 }; circles.push(pedCircle);
+  const MASK_WAIT = 14, PED_H = 1.05, plinth = new THREE.Group(); { const drum = new THREE.Mesh(new THREE.CylinderGeometry(.95, 1.12, PED_H, 48), stoneMat), cap = new THREE.Mesh(new THREE.CylinderGeometry(1.06, 1.06, .12, 48), stoneMat), band = new THREE.Mesh(new THREE.TorusGeometry(1.0, .05, 10, 56), chainMat); drum.position.y = PED_H / 2; cap.position.y = PED_H; band.rotation.x = Math.PI / 2; band.position.y = PED_H * .55; [drum, cap].forEach((m) => { m.castShadow = m.receiveShadow = true; }); plinth.add(drum, cap, band); } plinth.position.set(MASK.x, -PED_H - .2, MASK.z); scene.add(plinth); const pedCircle = { x: MASK.x, z: MASK.z, r: 0 }; circles.push(pedCircle);
   const plinthMask = makeMask(2.4); plinthMask.position.set(MASK.x, .2, MASK.z); plinthMask.rotation.set(1.0, Math.PI, 0, "YXZ"); scene.add(plinthMask);
   const maskGlint = new THREE.Sprite(flameMat.clone()); maskGlint.material.color.set(0xcfe2ff); maskGlint.position.set(MASK.x, .5, MASK.z); maskGlint.scale.set(.7, .7, 1); scene.add(maskGlint);
   const maskLight = new THREE.PointLight(0xcfe0ff, 1.4, 8, 2); maskLight.position.set(MASK.x, 1.3, MASK.z); scene.add(maskLight);
@@ -5719,6 +5780,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     kindling.forEach((k) => { if (!k.taken) k.glint.material.opacity = .4 + .3 * Math.sin(t * 4 + k.x); });
     postFlame.material.opacity = .85 + .15 * Math.sin(t * 11); postLight.intensity = 2 + .3 * Math.sin(t * 9);
     spearGlow.material.opacity = .4 + .25 * Math.sin(t * 3);
+    fireTick(dt, t);
 
     // ---------- the wolf
     const dxw = S.wx - S.x, dzw = S.wz - S.z, dist = Math.hypot(dxw, dzw);
@@ -6133,6 +6195,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (rigs.wolfMat) { rigs.wolfMat.color.copy(cN).lerp(cD, S.dawn); rigs.shadowMat.opacity = shFur.opacity; }
   }
 
+  findFires();
   // ============================================================ picture: shadows, bloom, grain
   scene.traverse((o) => { if (!o.isMesh) return; const flat = /Plane|Ring|Circle/.test(o.geometry.type); o.castShadow = !flat && !o.material.transparent && o.material.type !== "MeshBasicMaterial"; o.receiveShadow = !flat || o === ground; });
   let composer = null, bloom = null, finalPass = null;
