@@ -60,6 +60,13 @@ body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow
 .eyes { display: flex; gap: 5px; }
 .eyes span { width: 7px; height: 7px; border-radius: 50%; background: #2a1512; transition: background .2s, box-shadow .2s; }
 .eyes span.on { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.hudBtns { display: flex; gap: 6px; }
+.pause { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px; background: rgba(7,7,8,.8); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.pause[hidden] { display: none; }
+.pcard { display: grid; gap: 14px; width: min(100%, 380px); }
+.pcard h2 { margin: 0 0 6px; }
+.pcard .actions { display: grid; gap: 10px; }
+.pcard .btn { width: 100%; text-align: center; }
 .sound { pointer-events: auto; font-family: var(--mono); font-size: 12.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; background: none; border: 1px solid var(--line); color: var(--muted); padding: 6px 10px; border-radius: 999px; cursor: pointer; }
 .sound:hover, .sound:focus-visible { color: var(--fg); border-color: var(--fg); outline: none; }
 .toast { position: fixed; left: 50%; top: 36%; transform: translate(-50%, -50%); font-family: var(--hand); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: clamp(30px, 5vw, 50px); color: var(--fg); text-align: center; pointer-events: none; opacity: 0; transition: opacity .4s; text-shadow: 0 2px 18px #000; width: max-content; max-width: calc(100% - 32px); line-height: 1; }
@@ -218,7 +225,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   </div>
   <div class="compass" id="compass" style="visibility:hidden"><div class="dial"><div class="needle" id="needle"></div></div><span class="what" id="compassWhat">Fire pit · 20 m</span></div>
   <div class="right">
-    <button class="sound" type="button" id="soundBtn" aria-pressed="true">Sound on</button>
+    <div class="hudBtns"><button class="sound" type="button" id="pauseBtn">Pause</button><button class="sound snd" type="button" id="soundBtn" aria-pressed="true">Sound on</button></div>
     <span class="label">The shadow</span>
     <div class="eyes" id="eyes" aria-label="How close the wolf is"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </div>
@@ -256,6 +263,17 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 </div>
 
 <!-- title: the storyboard for the whole film -->
+<div class="pause" id="pauseScreen" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+  <div class="pcard">
+    <span class="label" id="pauseChap"></span>
+    <h2 id="pauseTitle">Paused</h2>
+    <div class="actions">
+      <button class="btn" type="button" id="resumeBtn">Resume</button>
+      <button class="btn ghost snd" type="button" id="pauseSoundBtn" aria-pressed="true">Sound on</button>
+      <button class="btn ghost" type="button" id="quitBtn">Quit to start screen</button>
+    </div>
+  </div>
+</div>
 <section class="screen" id="titleScreen">
   <div class="sheet">
     <header><span class="label">Shadows of the Undertow · Playable</span><span class="label">Eight chapters</span></header>
@@ -294,6 +312,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         <div class="actions">
           <a class="btn" href="https://www.youtube.com/watch?v=Qlvg_YUjLZM" target="_blank" rel="noopener">Watch the teaser ↗</a>
           <button class="btn ghost" type="button" id="againBtn">Play again</button>
+          <button class="btn ghost snd" type="button" id="winSoundBtn" aria-pressed="true">Sound on</button>
         </div>
       </div>
     </div>
@@ -5287,7 +5306,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     const f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 2; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.35, t + .05); g.gain.exponentialRampToValueAtTime(.001, t + len);
     o.connect(f); f.connect(g); g.connect(master); o.start(t); lfo.start(t); o.stop(t + len + .05); lfo.stop(t + len + .05); }
   function clank() { if (!actx) return; const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(); o.type = "triangle"; o.frequency.setValueAtTime(900 + Math.random() * 300, t); o.frequency.exponentialRampToValueAtTime(300, t + .2); g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .3); o.connect(g); g.connect(master); o.start(t); o.stop(t + .32); }
-  $("soundBtn").addEventListener("click", () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "Sound on" : "Sound off"; $("soundBtn").setAttribute("aria-pressed", soundOn); if (master) master.gain.value = soundOn ? .9 : 0; });
+  // one sound switch, shown in three places: the HUD, the pause screen and the end screen
+  function setSound(on) { soundOn = on; document.querySelectorAll(".snd").forEach((b) => { b.textContent = on ? "Sound on" : "Sound off"; b.setAttribute("aria-pressed", on); }); if (master) master.gain.value = on ? .9 : 0; }
+  document.querySelectorAll(".snd").forEach((b) => b.addEventListener("click", () => setSound(!soundOn)));
 
   // ============================================================ state
   const S = {
@@ -5353,6 +5374,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   function cornerCard(c) { $("bannerLabel").textContent = c.label; $("bannerTitle").innerHTML = c.title; $("bannerNote").textContent = c.note; $("banner").classList.add("on");
     clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { $("banner").classList.remove("on"); }, 3600); }
   function showBanner(i) {
+    if (S.mode === "title") return;      // he left to the start screen
     const c = CHAPTERS[i], clip = HQ["cs_" + c.id] || CLIPS["cs_" + c.id];
     $("toast").style.opacity = 0; toastT = 0; sfx("boom", .5);
     if (!clip || noMotion) { cornerCard(c); return; }
@@ -5426,7 +5448,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     const k = e.key.toLowerCase();
     // inside a web page the arrow keys and space must never scroll the page behind the game, whatever the game is doing
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "home", "end"].includes(k) || (k === " " && !e.target.closest("button, a, input"))) e.preventDefault();
-    if (S.mode !== "play") return;
+    if ((k === "escape" || k === "p") && !e.repeat) { setPause(!userPaused); e.preventDefault(); return; }
+    if (S.mode !== "play" || userPaused) return;
     if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { keys.add(k); e.preventDefault(); }
     if ((k === "s" || k === "e" || k === "l") && !e.repeat) { usePressed = true; e.preventDefault(); }
     if ((k === "a" || k === "f" || k === "j") && !e.repeat) { attackPressed = true; e.preventDefault(); }
@@ -6138,8 +6161,22 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   function resize() { const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight; renderer.setSize(w, h, false); if (composer) { composer.setPixelRatio(PR); composer.setSize(w, h); } camera.aspect = w / h; camera.fov = w / h < .8 ? 62 : 50; camera.updateProjectionMatrix(); }
   addEventListener("resize", resize); resize();
   setupChapter(0); S.mode = "title"; camera.position.set(0, 9, 9);
-  let last = performance.now(), paused = false;
-  document.addEventListener("visibilitychange", () => { paused = document.hidden; last = performance.now(); keys.clear(); if (actx) document.hidden ? actx.suspend() : actx.resume(); });
+  let last = performance.now(), paused = false, userPaused = false;
+  document.addEventListener("visibilitychange", () => { paused = document.hidden; last = performance.now(); keys.clear(); if (actx) document.hidden || userPaused ? actx.suspend() : actx.resume(); });
+  // pause: everything stops, sound included, until Resume. From here the player can also leave to the start screen.
+  function setPause(on) {
+    if (on === userPaused || (on && S.mode !== "play")) return;
+    userPaused = on; $("pauseScreen").hidden = !on; keys.clear(); stick = null; last = performance.now();
+    if (on) { $("pauseChap").textContent = CHAPTERS[S.ch].label; $("resumeBtn").focus(); } else document.activeElement && document.activeElement.blur();
+    if (actx) on ? actx.suspend() : actx.resume();
+  }
+  function quitToTitle() {
+    userPaused = false; $("pauseScreen").hidden = true; if (actx) actx.resume();
+    setupChapter(0, true); S.mode = "title"; $("hud").hidden = true; $("controls").hidden = true; setPad(false); setPrompt("");
+    $("banner").classList.remove("on"); $("toast").style.opacity = 0; $("fade").classList.remove("on");
+    $("titleScreen").hidden = false; $("titleScreen").style.opacity = ""; $("titleScreen").scrollTop = 0; titleClips(true); last = performance.now();
+  }
+  $("pauseBtn").addEventListener("click", () => setPause(true)); $("resumeBtn").addEventListener("click", () => setPause(false)); $("quitBtn").addEventListener("click", quitToTitle);
   // if the device can't keep up, give back the expensive effects one at a time
   let slowT = 0, okT = 0, quality = 3;
   function watchSpeed(dt) {
@@ -6147,8 +6184,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (slowT + okT < 4) return; const bad = slowT > okT; slowT = okT = 0; if (!bad || quality <= 0) return; quality--;
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
-  function frame(now) { requestAnimationFrame(frame); if (paused || cutscene || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  function frame(now) { requestAnimationFrame(frame); if (paused || userPaused || cutscene || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
+  window.__game = { S, setPause, isPaused: () => userPaused, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
