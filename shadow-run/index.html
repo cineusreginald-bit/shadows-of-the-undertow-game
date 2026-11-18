@@ -5840,7 +5840,11 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     else if (S.wState === "rise") { tx = S.wx; tz = S.wz; wsp = 0; if (S.wT <= 0) { S.wState = "chase"; S.wT = 2.5; } }
     else if (S.wState === "drown") { tx = S.wx * .6; tz = SHORE_Z - 8; wsp = 7; }   // it charges in after him and goes under
     else if (S.wState === "lost") { S.wa += dt * .7; if (S.hide) { tx = S.hide.x + Math.cos(S.wa) * 6.5; tz = S.hide.z + Math.sin(S.wa) * 6.5; wsp = 5; faceTo = [S.wx + Math.cos(S.wa + 1.2), S.wz + Math.sin(S.wa + 1.2)]; } else { S.wState = "chase"; S.wT = 1.8; } }   // it circles, hunting for the scent
-    else if (S.wState === "under") { tx = S.x; tz = S.z; wsp = 4.8; }                 // seven eyes under the surface, finding his stone
+    else if (S.wState === "under") { tx = S.x; tz = S.z; wsp = 4.8;                   // seven eyes under the surface, finding his stone
+      // if he is back on the bank (he fell and was washed up, or leapt back), it does not stay down: it climbs out after him
+      if (id === "cross" && playing && S.onLand && !S.leap && !(S.fallT > 0) && S.z > SHORE_Z) { S.bankT = (S.bankT || 0) + dt;
+        if (S.bankT > 1.1) { S.bankT = 0; S.landed = false; S.wx = Math.max(-HALF_W + 2, Math.min(HALF_W - 2, S.x + (S.x > 0 ? -3 : 3))); S.wz = SHORE_Z - 2.4; tx = S.wx; tz = S.wz; wolf.visible = true; S.wState = "rise"; S.wT = S.emergeT = EMERGE; sfx("abyss", .8) || noise(1.2, 1, 140); sfx("wave", .7); burst(S.wx, .2, S.wz, 30, 0x9fc4e8, 4); } }
+      else S.bankT = 0; }
     else if (S.wState === "dead") { tx = S.wx; tz = S.wz; wsp = 0; }
     const vwx = tx - S.wx, vwz = tz - S.wz, vwd = Math.hypot(vwx, vwz);
     if (vwd > 1e-3) { const st = Math.min(vwd, wsp * dt * (S.dart > 0 ? 1.8 : 1)); S.wx += vwx / vwd * st; S.wz += vwz / vwd * st; }
