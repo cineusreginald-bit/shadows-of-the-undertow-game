@@ -5321,6 +5321,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 
   // ---- set up the world for the start of a chapter (also used for retries)
 
+  const EMERGE = 3;      // seconds the wolf takes to climb out of the lake onto the island
   function setupChapter(i, snap) {
     S.ch = i; const id = CHAPTERS[i].id;
     Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0 });
@@ -5339,7 +5340,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       wolf.scale.setScalar(1.08); wound.scale.setScalar(1.2);
     }
     if (id === "mask") {
-      Object.assign(S, { x: 1, z: ISLAND.z + ISLAND.r - 3, heading: 0, hasTorch: true, hasSpear: true, fuel: 100, hp: 3, wx: 1, wz: ISLAND.z + ISLAND.r + 1.5, wState: "rise", wT: 2.2, emergeT: 2.2 });
+      Object.assign(S, { x: 1, z: ISLAND.z + ISLAND.r - 3, heading: 0, hasTorch: true, hasSpear: true, fuel: 100, hp: 3, wx: 1, wz: ISLAND.z + ISLAND.r + 1.5, wState: "rise", wT: EMERGE, emergeT: EMERGE });
       wolf.scale.setScalar(1.08); wound.scale.setScalar(1.2);
     }
     if (id === "true") {
@@ -5402,7 +5403,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (id === "duel") { Object.assign(S, { fuel: 100, hp: 3, wolfHp: 3, wState: "circle", wT: 3.2 }); fireRing.visible = true; ringGrow = 0; }
     if (id === "berserk") { sfx("transform", .75); Object.assign(S, { hp: 3, wState: "rise", wT: 1.8, inv: 1.8 }); wolf.scale.setScalar(1.08); wolf.rotation.z = 0; }   // it roars first: a head start
     if (id === "cross") Object.assign(S, { hp: 3, landed: false, safe: null, onLand: true, leap: null });
-    if (id === "mask") { Object.assign(S, { hp: 3, landed: false, wState: "rise", wT: 2.2, emergeT: 2.2, wx: S.x, wz: ISLAND.z + ISLAND.r + 1.5, inv: 1 }); wolf.visible = true; sfx("abyss", .9) || noise(1.2, 1, 140); sfx("wave", .7); }
+    if (id === "mask") { Object.assign(S, { hp: 3, landed: false, wState: "rise", wT: EMERGE, emergeT: EMERGE, wx: S.x, wz: ISLAND.z + ISLAND.r + 1.5, inv: EMERGE }); wolf.visible = true; sfx("abyss", .9) || noise(1.2, 1, 140); sfx("wave", .7); }
     if (id === "true") { Object.assign(S, { hp: 3, wolfHp: 6, wState: "circle", wT: 2.6 }); if (!S.sh) S.sh = { x: S.wx + 4, z: S.wz, fade: 0 }; Object.assign(S.sh, { st: "circle", t: 4.6, cdx: 0, cdz: -1 }); }
     play(); showBanner(i); hud();
   }
@@ -5925,7 +5926,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         if (S.strike > .1 && S.strike < .34 && d < 2.5 && (dx * -fcx + dz * -fcz) / d > .3) { killWisp(w, false, true); continue; }      // the spear scatters it
         if (d < .6 && S.inv <= 0) { killWisp(w); hurt(dx, dz, .5); } } }
     if (S.wState === "drown") { const dep = SHORE_Z - S.wz; wolf.position.y = -Math.max(0, Math.min(3.2, dep * .7)); wolf.rotation.x = Math.max(0, Math.min(.6, dep * .2)); if (dep > 4.6) { S.wState = "under"; wolf.visible = false; sfx("wave", .9) || noise(.8, .7, 200); burst(S.wx, .2, S.wz, 30, 0x9fc4e8, 4); } }
-    else if (S.emergeT > 0) { if (playing) S.emergeT -= dt; wolf.position.y = -3.2 * Math.max(0, S.emergeT / 2.2); wolf.rotation.x = 0; }
+    else if (S.emergeT > 0) { if (playing) { S.emergeT -= dt; if (Math.random() < dt * 9) burst(S.wx + (Math.random() - .5) * 1.6, .2, S.wz + (Math.random() - .5) * 1.2, 7, 0x9fc4e8, 3); } wolf.position.y = -3.2 * Math.max(0, S.emergeT / EMERGE); wolf.rotation.x = -.35 * Math.max(0, S.emergeT / EMERGE); }
     else { wolf.position.y = 0; wolf.rotation.x = 0; }
     if (S.wState === "dead") { S.deadT += dt; const k = Math.min(1, S.deadT / .8); wolf.rotation.z = k * 1.45; wbody.position.y = -k * .2; halos.forEach((h) => h.material.opacity *= 1 - k); }
     underEyes.visible = S.wState === "under"; if (underEyes.visible) { underEyes.position.set(S.wx, -.02, S.wz); underEyes.children.forEach((c, i) => { if (i) c.material.opacity = .6 + .35 * Math.sin(t * 5 + i); }); }
@@ -5965,6 +5966,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (id === "cell") { cx = S.x * .5; lx = S.x * .5; lz = S.z - 1.5; }
     if (id === "cross") { lz = S.z - 4; cz -= 1; }
     if (id === "duel") { cx = (S.x + SHRINE.x) / 2; lx = cx; cz = (S.z + SHRINE.z) / 2 + off[2]; lz = (S.z + SHRINE.z) / 2 - 1; }
+    if (S.emergeT > 0 && S.mode === "play") { const k = Math.min(1, S.emergeT / .6); cx += (S.wx - S.x) * .4 * k; lx += (S.wx - S.x) * .5 * k; cy += (portrait ? 4 : 3) * k; cz += (portrait ? 7 : 5.5) * k; lz = lz + ((S.z + S.wz) / 2 + .5 - lz) * k; }   // the camera turns back to the water so the wolf is seen climbing out
     if (S.mode === "title") { cx = Math.sin(t * .15) * 1.5; cy = 9; cz = 9; lx = 0; lz = 0; }
     if (S.mode === "caught") { const k = Math.min(1, S.end); cy -= k * 5; cz -= k * 3.5; }
     const sh = reduceMotion ? 0 : Math.max(0, S.flash - .2) * .6 + (S.mode === "caught" ? Math.max(0, .5 - S.end) * .4 : 0) + (S.knock > 0 ? .25 : 0);
@@ -6185,7 +6187,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
   function frame(now) { requestAnimationFrame(frame); if (paused || userPaused || cutscene || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, setPause, isPaused: () => userPaused, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  window.__game = { S, wolf, setPause, isPaused: () => userPaused, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
