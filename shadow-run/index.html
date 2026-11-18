@@ -5636,6 +5636,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         if (k >= 1) { S.leap = null; S.onLand = L.land || L.island; baseY = L.y1; sfx("block", .9, .8) || noise(.18, .4, 700); { const ri = ROCKS.findIndex((r) => Math.hypot(r.x - L.x1, r.z - L.z1) < .1); if (ri >= 0 && DEAD[ri]) { S.deT = 1.6; S.deadAt = ROCKS[ri]; sfx("thud", .7, .7); sfx("groan", .5, .7); toast("Dead end", 1.3); } } burst(S.x, L.y1 + .1, S.z, 10, 0x9fc4e8, 2.2); if (L.island && playing) advance(6); }
       }
       const air = !!S.leap, onIsland = Math.hypot(S.x - ISLAND.x, S.z - ISLAND.z) < ISLAND.r - .3, overWater = S.z < SHORE_Z - .2 && !onIsland;
+      if (CHAPTERS[S.ch].id === "cross" && onIsland && !air && playing && !(S.fallT > 0)) { S.onLand = true; advance(6); }      // however he got onto the island (a leap, or stepping off a stone that touches it), the crossing is over and the wolf comes out
       const on = !air && overWater ? ROCKS.find((r) => r.sunk <= 0 && Math.hypot(S.x - r.x, S.z - r.z) < r.r + .12) || null : null;
       for (const r of ROCKS) {
         if (r.sunk > 0) { r.sunk -= dt; if (r.sunk <= 0) r.t = 0; }
