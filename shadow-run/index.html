@@ -200,6 +200,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 #fade.on .fadeText.show { opacity: 1; }
 .fadeText .note { font-size: clamp(34px, 6vw, 56px); }
 .fadeText .label { max-width: 46ch; line-height: 1.6; }
+#fade.pov { background: radial-gradient(ellipse at 50% 44%, rgba(0,0,0,0) calc(var(--ap, 60) * 1%), rgba(0,0,0,.84) calc(var(--ap, 60) * 1% + 18%), #000 calc(var(--ap, 60) * 1% + 34%)); place-items: end center; }
+#fade.pov .fadeText { padding-bottom: 12vh; text-shadow: 0 1px 14px #000, 0 0 3px #000; }
+#fade.pov #fadeNote { display: none; }
 #fadeGo { margin-top: 22px; color: var(--fg); opacity: 0; transition: opacity .8s ease; }
 #fadeGo.on { opacity: 1; }
 #winScreen, #titleScreen { transition: opacity 1s ease; }
@@ -5404,8 +5407,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const EMERGE = 3;      // seconds the wolf takes to climb out of the lake onto the island
   function setupChapter(i, snap) {
     S.ch = i; const id = CHAPTERS[i].id;
-    Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0 });
-    man.rotation.set(0, 0, 0); man.position.y = 0; wolf.visible = true; wolf.scale.setScalar(.92); rage.intensity = 0; wound.scale.setScalar(0);
+    Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0, wMove: null, wLast: null, wCombo: 0, snapCd: 2.5 });
+    man.rotation.set(0, 0, 0); man.position.y = 0; man.visible = true; $("fade").classList.remove("pov"); wolf.visible = true; wolf.scale.setScalar(.92); rage.intensity = 0; wound.scale.setScalar(0);
     lane.material.opacity = 0; fireRing.visible = false;
     if (id === "cell") {
       Object.assign(S, { x: -3, z: 2.5, heading: Math.PI, hasTorch: false, hasSpear: false, chained: true, pulls: 0, fuel: 0, hp: 3, wolfHp: 3, wx: 6.6, wz: -.6, wState: "window" });
@@ -5491,10 +5494,11 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (S.mode === "caught") return;      // one restart at a time
     S.mode = "caught"; S.end = 0; sfx("bite", .9) || noise(.8, 1, 500); sfx("thud", .9); S.retries++; window.SRB && SRB.caught(CHAPTERS[S.ch].id, S.time, S.retries);
     $("fadeNote").textContent = note; $("fadeTip").textContent = tip || TIPS[CHAPTERS[S.ch].id];
-    // fade out on the hit, say one line, then hold on black until the player is ready to go again
+    // he goes down: we see what he sees from the ground, his heart pounding, the dark closing in until the player goes again
     retryReady = false; $("fadeGo").classList.remove("on");
     $("fadeGo").textContent = isTouch ? "Tap to try again" : "Press any key to try again";
-    setTimeout(() => { $("fade").classList.add("on"); $("fade").firstElementChild.classList.add("show"); }, 900);
+    S.beatT = .25; S.beatP = 0; $("fade").style.setProperty("--ap", "62");
+    setTimeout(() => { if (S.mode !== "caught") return; $("fade").classList.add("on", "pov"); $("fade").firstElementChild.classList.add("show"); }, 500);
     setTimeout(() => { if (S.mode === "caught") { retryReady = true; $("fadeGo").classList.add("on"); } }, 3200);
   }
   let retryReady = false;
@@ -5847,20 +5851,47 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       if (S.wpause > 0) { tx = S.wx; tz = S.wz; }
       else { S.wa += dt * .75 * (S.wdir || 1); const rr = 6.2 + Math.sin(S.time * .5) * 1.3; tx = S.x + Math.cos(S.wa) * rr; tz = S.z + Math.sin(S.wa) * rr; wsp = 5.2; }
       const dd = Math.hypot(tx - AR.x, tz - AR.z); if (dd > AR.r - 1.6) { tx = AR.x + (tx - AR.x) / dd * (AR.r - 1.6); tz = AR.z + (tz - AR.z) / dd * (AR.r - 1.6); }
-      wsp = 6; if (S.wT <= 0 && playing) { S.wState = "windup"; S.wT = .85; sfx("growl", 1, 1.15) || noise(.8, .7, 200); }
+      wsp = 6;
+      // what it knows: the spear fight adds a move per wound; the last fight starts with those and adds the double charge
+      const wLvl = id === "duel" ? 3 - S.wolfHp : (6 - S.wolfHp >= 2 ? 3 : 2);
+      S.snapCd = Math.max(0, (S.snapCd || 0) - dt);
+      if (wLvl >= 2 && playing && S.snapCd <= 0 && dist < 2.7 && S.wT > .3) { S.wTc = S.wT; S.wState = "snap"; S.wT = .34; S.dart = .34; sfx("snort", .9, 1.2) || noise(.25, .7, 500); }     // too close: it bites, fast
+      else if (S.wT <= 0 && playing) {
+        const r = Math.random(); let mv = "charge";
+        if (wLvl >= 3 && r < .34 && S.wLast !== "double") mv = "double"; else if (wLvl >= 1 && r > .6 && S.wLast !== "feint") mv = "feint";
+        S.wMove = mv; S.wLast = mv; S.wCombo = mv === "double" ? 1 : 0;
+        S.wState = "windup"; S.wT = .85; sfx("growl", 1, 1.15) || noise(.8, .7, 200); }
     }
     else if (S.wState === "windup") {
       tx = S.wx; tz = S.wz; wsp = 0;
       if (S.wT > .35) { const d = Math.hypot(S.x - S.wx, S.z - S.wz) || 1; S.cdx = (S.x - S.wx) / d; S.cdz = (S.z - S.wz) / d; }   // aims until the last beat
-      if (S.wT <= 0) { S.wState = "charge"; S.wT = Math.min(.9, (Math.hypot(S.x - S.wx, S.z - S.wz) + 3) / 17); sfx("roar", .9) || noise(.5, .9, 400); }   // skids to a stop a few metres past you
+      if (S.wT <= 0 && duelLike && S.wMove === "feint") { S.wState = "feint"; S.wT = Math.max(.07, Math.min(.2, (dist - 1.8) / 17)); sfx("snarl", .8) || noise(.3, .7, 300); }      // a short false start
+      else if (S.wT <= 0) { S.wState = "charge"; S.wT = Math.min(.9, (Math.hypot(S.x - S.wx, S.z - S.wz) + 3) / 17); sfx("roar", .9) || noise(.5, .9, 400); }   // skids to a stop a few metres past you
     }
     else if (S.wState === "charge") {
       tx = S.wx + S.cdx * 10; tz = S.wz + S.cdz * 10; wsp = 17;
       if (playing && S.inv <= 0 && dist < 1.3) { hurt(S.cdx, S.cdz); }
       const dd = Math.hypot(S.wx - AR.x, S.wz - AR.z);
-      if (S.wT <= 0 || (duelLike && dd > AR.r - 1.4)) { S.wState = duelLike ? "recover" : "chase"; S.wT = id === "duel" ? 2.2 : id === "true" ? 1.5 : 2.4 + Math.random(); }
+      const outward = (S.wx - AR.x) * S.cdx + (S.wz - AR.z) * S.cdz > 0;
+      if (S.wT <= 0 || (duelLike && dd > AR.r - 1.4 && outward)) {
+        if (duelLike && S.wCombo > 0) {      // double charge: it skids, turns and comes again; it only stumbles after the second
+          S.wCombo = 0; S.wMove = null; S.wState = "windup"; S.wT = .5; const d = Math.hypot(S.x - S.wx, S.z - S.wz) || 1; S.cdx = (S.x - S.wx) / d; S.cdz = (S.z - S.wz) / d; sfx("snarl", .9) || noise(.4, .8, 260); }
+        else { S.wState = duelLike ? "recover" : "chase"; S.wT = id === "duel" ? 2.2 : id === "true" ? 1.5 : 2.4 + Math.random(); } }
     }
-    else if (S.wState === "recover") { tx = S.wx; tz = S.wz; wsp = 0; if (S.wT <= 0) { S.wState = "circle"; S.wT = 1.6 + Math.random() * 1.2; } }
+    else if (S.wState === "feint") {         // lunges a short way, stops, then steps off the line
+      tx = S.wx + S.cdx * 10; tz = S.wz + S.cdz * 10; wsp = 17;
+      if (S.wT <= 0) { const sd = Math.random() < .5 ? 1 : -1; S.sdx = -S.cdz * sd; S.sdz = S.cdx * sd; S.wState = "sidestep"; S.wT = .3; }
+    }
+    else if (S.wState === "sidestep") {      // ...and charges for real from the new angle
+      tx = S.wx + S.sdx * 6; tz = S.wz + S.sdz * 6; wsp = 11;
+      const dd = Math.hypot(tx - AR.x, tz - AR.z); if (dd > AR.r - 1.6) { tx = AR.x + (tx - AR.x) / dd * (AR.r - 1.6); tz = AR.z + (tz - AR.z) / dd * (AR.r - 1.6); }
+      if (S.wT <= 0) { S.wMove = null; S.wState = "windup"; S.wT = .55; sfx("growl", .9, 1.3) || noise(.5, .7, 240); }
+    }
+    else if (S.wState === "snap") {          // a quick bite at anyone standing too close; half a wound
+      tx = S.wx; tz = S.wz; wsp = 0;
+      if (S.wT <= 0) { if (playing && S.inv <= 0 && dist < 2.4) hurt(S.x - S.wx, S.z - S.wz, .5); S.snapCd = 3; S.wState = "circle"; S.wT = Math.max(1, S.wTc || 1); }
+    }
+    else if (S.wState === "recover") { tx = S.wx; tz = S.wz; wsp = 0; if (S.wT <= 0) { S.wState = "circle"; S.wT = 1.6 + Math.random() * 1.2; S.snapCd = Math.max(S.snapCd || 0, 1.3); } }     // a beat to back off before it can snap
     else if (S.wState === "chase") {           // berserk: always coming, lunges every few seconds
       tx = S.x; tz = S.z; wsp = dist > 7 ? 7.4 : 5.9;     // it never falls far behind
       if (playing && S.inv <= 0 && dist < 1.2) hurt((S.x - S.wx) / (dist || 1), (S.z - S.wz) / (dist || 1));
@@ -5913,14 +5944,14 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     const prowl = ["edge", "circle", "lost", "window"].includes(S.wState), squared = ["windup", "recover", "stagger", "rise", "dying", "dead"].includes(S.wState);
     const away = wspd > .3 ? (mvx * (S.x - S.wx) + mvz * (S.z - S.wz)) / (Math.hypot(mvx, mvz) * Math.max(.01, dist)) : 0;      // -1 when it is moving straight away from him
     const backing = away < -.35 && dist < 11 && S.wState !== "lost" && S.wState !== "drown";                                     // it backs off facing him, never turns tail
-    const wantYaw = S.wState === "charge" ? Math.atan2(-S.cdx, -S.cdz) : (!squared && !backing && wspd > 1 && wspd < 40) ? Math.atan2(-mvx, -mvz) : face;
+    const wantYaw = S.wState === "charge" || S.wState === "feint" ? Math.atan2(-S.cdx, -S.cdz) : (!squared && !backing && wspd > 1 && wspd < 40) ? Math.atan2(-mvx, -mvz) : face;
     if (S.wyaw === undefined || wspd >= 40) S.wyaw = wantYaw; S.wyaw = turnTo(S.wyaw, wantYaw, dt * (S.wState === "charge" ? 16 : S.wState === "windup" ? 9 : 4.5));
     const wf = S.wyaw;
     { let hd = face - wf; hd = Math.atan2(Math.sin(hd), Math.cos(hd)); const want = S.wState === "charge" || S.wState === "dead" ? 0 : Math.max(-1.15, Math.min(1.15, hd)); S.whead = (S.whead || 0) + (want - (S.whead || 0)) * Math.min(1, dt * 7); headW.rotation.y = S.whead;
       S.wlow = (S.wlow || 0) + ((prowl ? 1 : 0) - (S.wlow || 0)) * Math.min(1, dt * 4); headW.position.y = 1.88 - S.wlow * .3; tailW.rotation.x = -S.wlow * .25; }
     wolf.rotation.y = wf; const sc = wolf.scale.x; wolf.position.set(S.wx + Math.sin(wf) * 1.7 * sc, 0, S.wz + Math.cos(wf) * 1.7 * sc);
     const wMoving = vwd > .3 && wsp > 0;
-    const bound = S.wState === "charge" || S.wState === "chase" || S.wState === "drown";     // it bounds when it runs, trots when it paces
+    const bound = S.wState === "charge" || S.wState === "feint" || S.wState === "sidestep" || S.wState === "chase" || S.wState === "drown";     // it bounds when it runs, trots when it paces
     { const fwd = wspd < 40 ? -(mvx * Math.sin(wf) + mvz * Math.cos(wf)) / Math.max(dt, 1e-4) : 0, stride = (bound ? 3.3 : 2.0) * sc;        // speed along its own body: legs turn over exactly as fast as the ground passes
       S.wgait = (S.wgait || 0) + dt * Math.max(-26, Math.min(26, fwd / stride * Math.PI * 2)); window.__W1.g = { ph: S.wgait, mode: wMoving && Math.abs(fwd) > .4 ? (bound ? 2 : 1) : 0 }; }
     const gallop = S.wgait;
@@ -5959,7 +5990,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         else if (sh.st === "peel") { stx = sh.px; stz = sh.pz; sp = 4; }
         else if (sh.st === "circle") {            // it keeps to the far side of him from the wolf
           const a = Math.atan2(S.wz - S.z, S.wx - S.x) + Math.PI + Math.sin(S.time * .6) * .6; stx = S.x + Math.cos(a) * 7; stz = S.z + Math.sin(a) * 7;
-          if (S.wState === "windup" || S.wState === "charge") sh.t = Math.max(sh.t, 1);      // they take turns
+          if (["windup", "charge", "feint", "sidestep", "snap"].includes(S.wState)) sh.t = Math.max(sh.t, 1);      // they take turns
           if (sh.t <= 0 && playing && ds < 12) { sh.st = "windup"; sh.t = .8; sfx("groan", .8, .8) || noise(.5, .55, 170); }
         }
         else if (sh.st === "windup") { sp = 0; if (sh.t > .25) { sh.cdx = dxs / ds; sh.cdz = dzs / ds; } if (sh.t <= 0) { sh.st = "charge"; sh.t = .8; sfx("roar2", .6, .85) || noise(.4, .7, 300); } }
@@ -6040,7 +6071,12 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (S.doorOpen) { doorBox.x0 = doorBox.x1 = 999; } else { doorBox.x0 = DOOR.x - .8; doorBox.x1 = DOOR.x + .8; }
     if (S.mode === "caught") {
       S.end += dt; man.rotation.y = face + Math.PI; man.rotation.x = -Math.min(1, S.end * 2) * .9; man.position.y = 0;
-      if (S.end > .9) { $("hud").hidden = true; setPad(false); $("controls").hidden = true; }
+      man.visible = S.end < .3;      // from here we are behind his eyes
+      if (S.end > .5) { $("hud").hidden = true; setPad(false); $("controls").hidden = true; }
+      // heavy heartbeat, slowing; each beat squeezes his vision, and the dark keeps closing until the player continues
+      S.beatT -= dt; S.beatP = Math.max(0, (S.beatP || 0) - dt * 3.5);
+      if (S.beatT <= 0) { S.beatT = Math.min(1.25, .62 + S.end * .04); S.beatP = 1; if (actx) { const bt = actx.currentTime + .02; thump(bt, 1); thump(bt + .19, .75); nextBeat = bt + 1.2; } }
+      $("fade").style.setProperty("--ap", (-34 + 96 * Math.exp(-Math.max(0, S.end - .5) / 11) - (reduceMotion ? 0 : S.beatP * 5)).toFixed(1));
     }
 
     // ---------- world motion
@@ -6065,11 +6101,20 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (id === "duel") { cx = (S.x + SHRINE.x) / 2; lx = cx; cz = (S.z + SHRINE.z) / 2 + off[2]; lz = (S.z + SHRINE.z) / 2 - 1; }
     if (S.emergeT > 0 && S.mode === "play") { const k = Math.min(1, S.emergeT / .6); cx += (S.wx - S.x) * .4 * k; lx += (S.wx - S.x) * .5 * k; cy += (portrait ? 4 : 3) * k; cz += (portrait ? 7 : 5.5) * k; lz = lz + ((S.z + S.wz) / 2 + .5 - lz) * k; }   // the camera turns back to the water so the wolf is seen climbing out
     if (S.mode === "title") { cx = Math.sin(t * .15) * 1.5; cy = 9; cz = 9; lx = 0; lz = 0; }
-    if (S.mode === "caught") { const k = Math.min(1, S.end); cy -= k * 5; cz -= k * 3.5; }
+    let ly = .6, roll = 0;
+    if (S.mode === "caught") {      // the camera falls with him and lies where his head lies, looking up at what killed him
+      const k = Math.min(1, S.end / .8), e = k * k * (3 - 2 * k);
+      let ax = S.wx - S.x, az = S.wz - S.z, ad = Math.hypot(ax, az);
+      if (!wolf.visible || ad > 16 || ad < .01) { ax = 0; az = -1; ad = 4; }     // nothing standing over him: he looks down the cave
+      const ux = ax / ad, uz = az / ad, br = reduceMotion ? 0 : Math.sin(t * 2.4) * .03;
+      cx += (S.x - ux * .5 - cx) * e; cy += (.4 + br - cy) * e; cz += (S.z - uz * .5 - cz) * e;
+      lx += (S.x + ux * Math.min(ad, 5) - lx) * e; lz += (S.z + uz * Math.min(ad, 5) - lz) * e; ly += (1.25 - ly) * e;
+      roll = e * .38 + (reduceMotion ? 0 : Math.sin(t * .9) * .02);
+    }
     const sh = reduceMotion ? 0 : Math.max(0, S.flash - .2) * .6 + (S.mode === "caught" ? Math.max(0, .5 - S.end) * .4 : 0) + (S.knock > 0 ? .25 : 0);
-    const fl = Math.min(1, dt * 4);
+    const fl = Math.min(1, dt * (S.mode === "caught" ? 7 : 4));
     camera.position.x += (cx - camera.position.x) * fl + (Math.random() - .5) * sh; camera.position.y += (cy - camera.position.y) * fl; camera.position.z += (cz - camera.position.z) * fl;
-    camera.lookAt(lx, .6, lz);
+    camera.lookAt(lx, ly, lz); if (roll) camera.rotateZ(roll);
     S.flash = Math.max(0, S.flash - dt);
     $("flash").style.opacity = S.flash * .35;
     $("flash").style.background = S.knock > 0 || S.hitFlash > 0 ? "var(--red)" : "var(--fire)";
