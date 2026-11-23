@@ -7,7 +7,7 @@
   const db = ready ? window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
   const device = window.matchMedia && matchMedia("(pointer: coarse)").matches ? "touch" : "desktop";
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
-  const secs = (t) => Math.max(0, Math.min(36000, Math.round(t || 0)));
+  const secs = (t) => Math.max(0, Math.min(36000, Math.floor(t || 0)));
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const TOP = 5;
   let runId = null, last = null, posted = false, mineId = null;
