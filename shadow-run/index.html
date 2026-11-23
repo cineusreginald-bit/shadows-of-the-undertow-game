@@ -200,6 +200,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
 #fade.on .fadeText.show { opacity: 1; }
 .fadeText .note { font-size: clamp(34px, 6vw, 56px); }
 .fadeText .label { max-width: 46ch; line-height: 1.6; }
+#fadeGo { margin-top: 22px; color: var(--fg); opacity: 0; transition: opacity .8s ease; }
+#fadeGo.on { opacity: 1; }
 #winScreen, #titleScreen { transition: opacity 1s ease; }
 #winScreen.in { animation: fadein 1.4s ease both; }
 @keyframes fadein { from { opacity: 0; } }
@@ -251,7 +253,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   </div>
 </div>
 <div id="scene" hidden><video id="sceneVid" muted playsinline preload="auto" aria-hidden="true"></video><div class="sceneText"><span class="label" id="sceneLabel"></span><h3 id="sceneTitle"></h3><span class="note" id="sceneNote"></span></div><span class="label sceneSkip" id="sceneSkip">Skip</span></div>
-<div id="fade" aria-hidden="true"><div class="fadeText"><span class="note" id="fadeNote">The light went out.</span><span class="label" id="fadeTip"></span></div></div>
+<div id="fade" aria-hidden="true"><div class="fadeText"><span class="note" id="fadeNote">The light went out.</span><span class="label" id="fadeTip"></span><span class="label" id="fadeGo"></span></div></div>
 </div>
 <div class="pad" id="pad" hidden>
   <div class="zone acts"><span class="hand">Left thumb</span><div class="btns">
@@ -5489,11 +5491,21 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (S.mode === "caught") return;      // one restart at a time
     S.mode = "caught"; S.end = 0; sfx("bite", .9) || noise(.8, 1, 500); sfx("thud", .9); S.retries++; window.SRB && SRB.caught(CHAPTERS[S.ch].id, S.time, S.retries);
     $("fadeNote").textContent = note; $("fadeTip").textContent = tip || TIPS[CHAPTERS[S.ch].id];
-    // fade out on the hit, say one line, then fade back in at the chapter's checkpoint
+    // fade out on the hit, say one line, then hold on black until the player is ready to go again
+    retryReady = false; $("fadeGo").classList.remove("on");
+    $("fadeGo").textContent = isTouch ? "Tap to try again" : "Press any key to try again";
     setTimeout(() => { $("fade").classList.add("on"); $("fade").firstElementChild.classList.add("show"); }, 900);
-    setTimeout(() => { $("fade").firstElementChild.classList.remove("show"); setupChapter(S.ch, true); play(); }, 3600);
-    setTimeout(() => { $("fade").classList.remove("on"); showBanner(S.ch); }, 4000);
+    setTimeout(() => { if (S.mode === "caught") { retryReady = true; $("fadeGo").classList.add("on"); } }, 3200);
   }
+  let retryReady = false;
+  function retry() {
+    if (S.mode !== "caught" || !retryReady || userPaused) return;
+    retryReady = false; $("fadeGo").classList.remove("on");
+    $("fade").firstElementChild.classList.remove("show"); setupChapter(S.ch, true); play();
+    setTimeout(() => { $("fade").classList.remove("on"); showBanner(S.ch); }, 400);
+  }
+  addEventListener("keydown", (e) => { const k = e.key.toLowerCase(); if (e.repeat || k === "escape" || k === "p" || e.metaKey || e.ctrlKey || e.altKey) return; retry(); });
+  addEventListener("pointerdown", (e) => { if (e.target.closest && e.target.closest("button, a, input")) return; retry(); });
   function begin() {
     S.time = 0; S.retries = 0; initAudio(); wakeAudio(); window.SRB && SRB.start();
     $("titleScreen").style.opacity = 0; $("winScreen").style.opacity = 0;
@@ -6274,7 +6286,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (quality === 2) torchLight.castShadow = false; else if (quality === 1 && bloom) bloom.enabled = false; else if (quality === 0) moon.castShadow = false;
   }
   function frame(now) { requestAnimationFrame(frame); if (paused || userPaused || cutscene || window.__game.hold) return; const dt = Math.min(.05, (now - last) / 1000); if (S.mode === "play") watchSpeed((now - last) / 1000); last = now; update(dt, now / 1000); draw(); }
-  window.__game = { S, wolf, setPause, isPaused: () => userPaused, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
+  window.__game = { caught, S, wolf, setPause, isPaused: () => userPaused, camera, scene, puddles, huts, ROCKS, PATH_N, wisps, ISLAND, MASK, DOOR, update, render: draw, pits, kindling, startChapter, advance, play, use: () => { usePressed = true; }, act: () => { attackPressed = true; }, dodge: () => { dodgePressed = true; } };
   $("loading").hidden = true;
   requestAnimationFrame(frame);
 })();
