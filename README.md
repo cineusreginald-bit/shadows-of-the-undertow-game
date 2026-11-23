@@ -3,6 +3,9 @@
 A browser game adapted from the short film *Shadows of the Undertow* by Reginald Cineus.
 
 - `shadow-run/` · the game
+- `shadow-run/config.js` · Supabase project URL and publishable key (empty = backend off)
+- `shadow-run/backend.js` · leaderboard and play stats
+- `supabase/schema.sql` · database tables and access rules
 
 Hosted with GitHub Pages and embedded on reginaldcineus.com.
 

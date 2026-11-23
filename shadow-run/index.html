@@ -5476,7 +5476,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   function startChapter(i) { setupChapter(i); play(); showBanner(i); }
   // move on to the next chapter in place: nobody jumps, nothing stops
   function advance(i) {
-    S.ch = i; const id = CHAPTERS[i].id;
+    S.ch = i; const id = CHAPTERS[i].id; window.SRB && SRB.chapter(id, S.time, S.retries);
     if (id === "torch") { S.wState = "edge"; S.darkT = 0; S.hp = 3; }
     if (id === "duel") { Object.assign(S, { fuel: 100, hp: 3, wolfHp: 3, wState: "circle", wT: 3.2 }); fireRing.visible = true; ringGrow = 0; }
     if (id === "berserk") { sfx("transform", .75); Object.assign(S, { hp: 3, wState: "rise", wT: 1.8, inv: 1.8 }); wolf.scale.setScalar(1.08); wolf.rotation.z = 0; }   // it roars first: a head start
@@ -5487,7 +5487,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   }
   function caught(note, tip) {
     if (S.mode === "caught") return;      // one restart at a time
-    S.mode = "caught"; S.end = 0; sfx("bite", .9) || noise(.8, 1, 500); sfx("thud", .9); S.retries++;
+    S.mode = "caught"; S.end = 0; sfx("bite", .9) || noise(.8, 1, 500); sfx("thud", .9); S.retries++; window.SRB && SRB.caught(CHAPTERS[S.ch].id, S.time, S.retries);
     $("fadeNote").textContent = note; $("fadeTip").textContent = tip || TIPS[CHAPTERS[S.ch].id];
     // fade out on the hit, say one line, then fade back in at the chapter's checkpoint
     setTimeout(() => { $("fade").classList.add("on"); $("fade").firstElementChild.classList.add("show"); }, 900);
@@ -5495,7 +5495,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     setTimeout(() => { $("fade").classList.remove("on"); showBanner(S.ch); }, 4000);
   }
   function begin() {
-    S.time = 0; S.retries = 0; initAudio(); wakeAudio();
+    S.time = 0; S.retries = 0; initAudio(); wakeAudio(); window.SRB && SRB.start();
     $("titleScreen").style.opacity = 0; $("winScreen").style.opacity = 0;
     setTimeout(() => { titleClips(false); $("titleScreen").hidden = true; $("titleScreen").style.opacity = ""; $("winScreen").hidden = true; $("winScreen").style.opacity = ""; $("winScreen").classList.remove("in"); startChapter(0); }, 700);
   }
@@ -5525,6 +5525,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   // ============================================================ input
   addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
+    if (e.target && e.target.closest && e.target.closest("input, textarea")) { if (k === "escape") e.target.blur(); return; }      // typing a name on the end screen is not game input
     // inside a web page the arrow keys and space must never scroll the page behind the game, whatever the game is doing
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", "pageup", "pagedown", "home", "end"].includes(k) || (k === " " && !e.target.closest("button, a, input"))) e.preventDefault();
     if ((k === "escape" || k === "p") && !e.repeat) { setPause(!userPaused); e.preventDefault(); return; }
@@ -5989,7 +5990,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         S.x += (DOOR.x - S.x) * Math.min(1, dt * 5); S.z -= 1.7 * dt; S.heading = 0;
         $("white").style.opacity = Math.max(0, Math.min(1, (S.end - .7) / 1.6));
         if (S.end > 1) { $("hud").hidden = true; setPad(false); $("controls").hidden = true; }
-        if (S.end > 3.2 && $("winScreen").hidden) { $("winStat").textContent = `${fmt(S.time)} · ${S.retries} ${S.retries === 1 ? "retry" : "retries"}`; $("winScreen").hidden = false; $("winScreen").classList.add("in"); titleClips(true); S.mode = "won"; $("white").style.transition = "opacity 1.4s ease"; $("white").style.opacity = 0; setTimeout(() => { $("white").style.transition = ""; }, 1600); }
+        if (S.end > 3.2 && $("winScreen").hidden) { $("winStat").textContent = `${fmt(S.time)} · ${S.retries} ${S.retries === 1 ? "retry" : "retries"}`; $("winScreen").hidden = false; $("winScreen").classList.add("in"); titleClips(true); S.mode = "won"; window.SRB && SRB.win(S.time, S.retries); $("white").style.transition = "opacity 1.4s ease"; $("white").style.opacity = 0; setTimeout(() => { $("white").style.transition = ""; }, 1600); }
       }
     }
     // the wolf in the water, coming out of it, and dying
@@ -6258,6 +6259,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (actx) on ? actx.suspend() : actx.resume(); if (on && hush) hush.pause();
   }
   function quitToTitle() {
+    if (S.mode !== "title" && S.mode !== "won") window.SRB && SRB.quit(CHAPTERS[S.ch].id, S.time, S.retries);
     userPaused = false; $("pauseScreen").hidden = true; if (actx) actx.resume();
     setupChapter(0, true); S.mode = "title"; $("hud").hidden = true; $("controls").hidden = true; setPad(false); setPrompt("");
     $("banner").classList.remove("on"); $("toast").style.opacity = 0; $("fade").classList.remove("on");
@@ -6277,3 +6279,6 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   requestAnimationFrame(frame);
 })();
 </script>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="backend.js"></script>
