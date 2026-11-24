@@ -5276,7 +5276,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const leapArc = new THREE.Points(arcGeo, new THREE.PointsMaterial({ color: 0xffc078, size: .16, map: glowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })); leapArc.frustumCulled = false; leapArc.visible = false; leapArc.renderOrder = 10; scene.add(leapArc);
   // pieces of the wolf's shadow: they come at him even through the light, and bite half as deep
   const wisps = []; { const dark = new THREE.MeshBasicMaterial({ color: 0x030304 }), pool = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .7, depthWrite: false }), red = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
-    for (let i = 0; i < 10; i++) { const g = new THREE.Group(), pup = new THREE.Group(); const pd = new THREE.Mesh(new THREE.CircleGeometry(.3, 14), pool); pd.rotation.x = -Math.PI / 2; pd.position.y = .04;
+    for (let i = 0; i < 16; i++) { const g = new THREE.Group(), pup = new THREE.Group(); const pd = new THREE.Mesh(new THREE.CircleGeometry(.3, 14), pool); pd.rotation.x = -Math.PI / 2; pd.position.y = .04;
       const body = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), dark); body.scale.set(.95, .85, 1.25); body.position.set(0, .2, -.04); const head = new THREE.Mesh(new THREE.SphereGeometry(.15, 12, 9), dark); head.position.set(0, .33, .2);
       const snout = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), dark); snout.position.set(0, .29, .34); const tail = new THREE.Mesh(new THREE.ConeGeometry(.045, .2, 6), dark); tail.rotation.x = -2.2; tail.position.set(0, .3, -.3);
       pup.add(body, head, snout, tail); for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.055, .15, 5), dark); ear.position.set(sx * .09, .48, .17); ear.rotation.z = -sx * .25; const eye = new THREE.Mesh(new THREE.SphereGeometry(.028, 6, 6), red); eye.position.set(sx * .06, .36, .33);
@@ -5407,7 +5407,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const EMERGE = 3;      // seconds the wolf takes to climb out of the lake onto the island
   function setupChapter(i, snap) {
     S.ch = i; const id = CHAPTERS[i].id;
-    Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0, wMove: null, wLast: null, wCombo: 0, snapCd: 2.5 });
+    Object.assign(S, { inv: 0, dodge: 0, dodgeCd: 0, strike: 0, knock: 0, out: 0, dart: 0, dartT: 4, end: 0, flash: 0, wMove: null, wLast: null, wCombo: 0, snapCd: 2.5, zm: null, cageDone: false, cageT: 0, wJump: 0, wEvaded: false, shSpillT: 5 });
     man.rotation.set(0, 0, 0); man.position.y = 0; man.visible = true; $("fade").classList.remove("pov"); wolf.visible = true; wolf.scale.setScalar(.92); rage.intensity = 0; wound.scale.setScalar(0);
     lane.material.opacity = 0; fireRing.visible = false;
     if (id === "cell") {
@@ -5501,6 +5501,8 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     setTimeout(() => { if (S.mode !== "caught") return; $("fade").classList.add("on", "pov"); $("fade").firstElementChild.classList.add("show"); }, 500);
     setTimeout(() => { if (S.mode === "caught") { retryReady = true; $("fadeGo").classList.add("on"); } }, 3200);
   }
+  // a short push-in on a moment that matters: the camera closes on (x, z) by k for d seconds, then lets go
+  function zoomTo(x, z, k, d) { S.zm = { x, z, k, d, t: d }; }
   let retryReady = false;
   function retry() {
     if (S.mode !== "caught" || !retryReady || userPaused) return;
@@ -5715,12 +5717,12 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       if (S.chained) {
         S.pulls++; S.pullT = .45; clank(); sfx("chainpull", .8, .9 + S.pulls * .04) || sfx("block", .8, .7); sfx("chain", 1); S.flash = .25; burst(ANCHOR.x, ANCHOR.y, ANCHOR.z, 18, 0xffb060, 3.5);
         if (S.pulls >= 5) {    // it snaps: links fly, sparks, he stumbles back
-          S.chained = false; S.snapT = 0; S.cageT = .5; S.cageN = 0; setGoal(); sfx("impact", .9) || noise(.5, .8, 2600); sfx("chaindrop", 1); setTimeout(() => sfx("chain", .9, .85), 260); clank(); setTimeout(clank, 60);
+          S.chained = false; S.snapT = 0; zoomTo(S.x, S.z, .3, 1.1); setGoal(); sfx("impact", .9) || noise(.5, .8, 2600); sfx("chaindrop", 1); setTimeout(() => sfx("chain", .9, .85), 260); clank(); setTimeout(clank, 60);
           burst(ANCHOR.x, ANCHOR.y, ANCHOR.z, 50, 0xffd090, 6); links.forEach((l) => { l.vx = (Math.random() - .5) * 6; l.vy = 2 + Math.random() * 4; l.vz = (Math.random() - .5) * 6 - 2; });
           const [fx, fz] = facing(); S.knock = .25; S.kx = -fx * .5; S.kz = -fz * .5; toast("The chain snaps", 1.6);
         }
       } else if (id === "torch" && !S.hasTorch && nearPost) {
-        S.hasTorch = true; S.fuel = 100; S.flash = .5; setGoal(); sfx("ignite", .9) || noise(.9, .6, 1600, true);
+        S.hasTorch = true; S.fuel = 100; S.flash = .5; zoomTo(S.x, S.z, .3, 1.2); setGoal(); sfx("ignite", .9) || noise(.9, .6, 1600, true);
       } else if (id === "mask" && !S.hasMask && nearMask) {      // he puts it on: the dark burns off
         S.hasMask = true; S.hasTorch = false; S.dawnTarget = 1; S.flash = 1; S.mode = "cut"; S.cut = "mask"; S.end = 0; S.wState = "stagger"; S.wT = 9; lane.material.opacity = 0;
         { const dx = S.wx - S.x, dz = S.wz - S.z, d = Math.hypot(dx, dz) || 1; S.sh = { x: S.wx, z: S.wz, st: "peel", t: 0, px: S.wx - dz / d * 6, pz: S.wz + dx / d * 6, cdx: 0, cdz: -1, fade: 0 }; }     // the shadow tears loose
@@ -5825,11 +5827,14 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     S.wHitCd = Math.max(0, (S.wHitCd || 0) - dt);
     if (playing) S.wT -= dt; S.dart = Math.max(0, S.dart - dt);
     if (S.mode === "title") { /* hold */ }
-    else if (S.wState === "window" && !S.chained && playing) {      // he is loose: it follows him along the bars, snarling and growling, louder the closer he passes
-      tx = CELL.x1 + 1.1; tz = Math.max(-1.3, Math.min(.1, S.z)); wsp = 5;
-      const nearK = Math.max(0, Math.min(1, 1 - (dist - 2.5) / 7)); S.cageT = (S.cageT || 0) - dt;
-      if (S.cageT <= 0) { S.cageT = 1.5 + Math.random() * .8 - nearK * .6; S.cageN = (S.cageN || 0) + 1; const sn = S.cageN % 2 === 1;
-        sfx(sn ? "snarl" : "growl", .45 + nearK * .55, sn ? 1 : 1.1) || noise(.5, .35 + nearK * .4, 220); if (nearK > .4) S.dart = .45; }
+    else if (S.wState === "window" && !S.chained && playing) {      // he is loose: it tracks him along the bars without a sound...
+      tx = CELL.x1 + (S.cageLunge > 0 ? .55 : 1.1); tz = Math.max(-1.3, Math.min(.1, S.z)); wsp = S.cageLunge > 0 ? 14 : 5; S.cageLunge = Math.max(0, (S.cageLunge || 0) - dt);
+      const nearK = Math.max(0, Math.min(1, 1 - (dist - 2.5) / 5)); S.cageT = (S.cageT || 0) - dt;
+      if (!S.cageDone && dist < 4.6) {      // ...until he passes the window on his way to the gap: it throws itself at the bars
+        S.cageDone = true; S.cageN = 0; S.cageT = .95; S.cageLunge = .5; S.dart = .8; S.flash = .3; sfx("snarl", 1) || noise(.6, .9, 320); setTimeout(() => sfx("growl", .9, 1.1), 320); clank(); zoomTo(S.wx, S.wz, .5, 1.7);
+        if (navigator.vibrate) try { navigator.vibrate(60); } catch (e) {} }
+      else if (S.cageDone && S.cageT <= 0 && dist < 8) { S.cageT = 1.05 + Math.random() * .5; S.cageN++; const sn = S.cageN % 2 === 1;      // and keeps at him until he is gone
+        sfx(sn ? "growl" : "snarl", .55 + nearK * .45, sn ? 1.1 : 1) || noise(.5, .4 + nearK * .4, 220); S.dart = .5; if (nearK > .3) { S.cageLunge = .3; clank(); } }
     }
     else if (S.wState === "window") { tx = CELL.x1 + 1.3 + Math.sin(t * .7) * .4; tz = -.6 + Math.sin(t * .5) * .8; wsp = 1.5; }
     else if (S.wState === "edge") {
@@ -5918,6 +5923,10 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (vwd > 1e-3) { const st = Math.min(vwd, wsp * dt * (S.dart > 0 ? 1.8 : 1)); S.wx += vwx / vwd * st; S.wz += vwz / vwd * st; }
     if (S.wState === "edge") for (const zc of lightZones()) { const ex = S.wx - zc.x, ez = S.wz - zc.z, ed = Math.hypot(ex, ez); if (ed < zc.r && ed > 1e-4) { S.wx = zc.x + ex / ed * zc.r; S.wz = zc.z + ez / ed * zc.r; } }
     if (S.wState === "edge" && S.z < -6 && S.wz > CELL.z0 - 1) S.wz += (CELL.z0 - 1 - S.wz) * Math.min(1, dt * 2);   // eases out of the cell area
+    // the evading jump: it springs back and to one side, off the ground, and lands still facing him
+    const evade = () => { const d = Math.hypot(S.wx - S.x, S.wz - S.z) || 1, ax = (S.wx - S.x) / d, az = (S.wz - S.z) / d, sd = Math.random() < .5 ? 1 : -1, c = Math.cos(1.05 * sd), sn = Math.sin(1.05 * sd);
+      S.evx = (ax * c - az * sn) * 8.5; S.evz = (ax * sn + az * c) * 8.5; S.wJump = .42; S.snapCd = Math.max(S.snapCd || 0, 1); sfx("swoosh", .8, 1.2) || noise(.25, .5, 900, true); burst(S.wx, .3, S.wz, 12, 0x2a1418, 3); };
+    if (S.wJump > 0) { S.wJump -= dt; S.wx += S.evx * dt; S.wz += S.evz * dt; const dd = Math.hypot(S.wx - AR.x, S.wz - AR.z), lim = AR.r - 1.3; if (duelLike && dd > lim) { S.wx = AR.x + (S.wx - AR.x) / dd * lim; S.wz = AR.z + (S.wz - AR.z) / dd * lim; } }
     // attacks: in the fight they only land while it stumbles; on the run they stagger it for a moment
     S.staggerCd = Math.max(0, (S.staggerCd || 0) - dt);
     if (playing && S.sh && S.sh.fade > .5 && S.strike > .1 && S.strike < .32 && !S.strikeHit) {     // the spear goes through the shadow like smoke
@@ -5928,13 +5937,16 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       const [fx, fz] = facing(), d = Math.hypot(S.wx - S.x, S.wz - S.z), dot = d > 0 ? ((S.wx - S.x) * fx + (S.wz - S.z) * fz) / d : 1;
       if (d < 3.3 && dot > .2) { S.strikeHit = true;
         if (id === "true") {       // it has a shape now: every clean thrust lands
-          if (S.wState !== "dead" && S.wHitCd <= 0) {
+          if (S.wState === "circle" && S.wHitCd <= 0 && !S.wEvaded && !(S.wJump > 0) && Math.random() < .4) { S.wEvaded = true; S.wHitCd = .5; evade(); }      // sometimes it springs clear; never twice running
+          else if (S.wState !== "dead" && S.wHitCd <= 0) { S.wEvaded = false;
             S.wolfHp--; S.wHitCd = 1.1; S.hitFlash = .4; S.hitStop = .12; sfx("impact", .8) || noise(.5, .9, 900); sfx("whine", .9) || whine(.6); burst(S.wx, 1.2, S.wz, 50, 0xff3a1a, 6); const mid = S.wState === "windup" || S.wState === "charge"; if (!mid) { const [hx, hz] = facing(); S.wx += hx * 1.4; S.wz += hz * 1.4; }
+            zoomTo(S.wx, S.wz, S.wolfHp <= 0 ? .5 : .28, S.wolfHp <= 0 ? 2.4 : .8);
             if (S.wolfHp <= 0) { S.wState = "dead"; S.deadT = 0; S.doorOpen = true; lane.material.opacity = 0; sfx("crash", .8) || noise(1.4, .8, 160); sfx("howl2", .8, .85) || whine(2); setGoal(); } else if (!mid) { S.wState = "stagger"; S.wT = 1.0; }      // once it has set itself, the charge comes regardless
           }
         } else if (id === "duel") {
           if (S.wState === "recover") { S.wolfHp--; S.hitFlash = .4; S.hitStop = .12; sfx("impact", .8) || noise(.5, .9, 900); sfx("whine", .9) || whine(.5); burst(S.wx, 1.6, S.wz, 50, 0xff3a1a, 6); { const [hx, hz] = facing(); S.wx += hx * 1.2; S.wz += hz * 1.2; } wound.scale.setScalar(.6 + (3 - S.wolfHp) * .3); 
-            if (S.wolfHp <= 0) { S.wState = "dying"; S.mode = "cut"; S.cut = "wound"; S.end = 0; } else { S.wState = "circle"; S.wT = 2; } }
+            if (S.wolfHp <= 0) { S.wState = "dying"; S.mode = "cut"; S.cut = "wound"; S.end = 0; } else { S.wState = "circle"; S.wT = 2; zoomTo(S.wx, S.wz, .28, .8); } }
+          else if (S.wState === "circle" && !(S.wJump > 0)) { evade(); toast("It dodged", 1.4); }      // it springs clear of the point
           else { clank(); burst(S.wx, 1.6, S.wz, 14, 0xffe0b0, 3); toast("It dodged", 1.4); }
         } else if (S.wState !== "rise" && S.wState !== "stagger") {
           if (S.staggerCd <= 0) { S.wState = "stagger"; S.wT = 1.2; S.staggerCd = 3.2; S.hitFlash = .4; S.hitStop = .1; sfx("cry", .9) || whine(1); burst(S.wx, 1.6, S.wz, 40, 0xff3a1a, 5); }
@@ -5955,7 +5967,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     const wf = S.wyaw;
     { let hd = face - wf; hd = Math.atan2(Math.sin(hd), Math.cos(hd)); const want = S.wState === "charge" || S.wState === "dead" ? 0 : Math.max(-1.15, Math.min(1.15, hd)); S.whead = (S.whead || 0) + (want - (S.whead || 0)) * Math.min(1, dt * 7); headW.rotation.y = S.whead;
       S.wlow = (S.wlow || 0) + ((prowl ? 1 : 0) - (S.wlow || 0)) * Math.min(1, dt * 4); headW.position.y = 1.88 - S.wlow * .3; tailW.rotation.x = -S.wlow * .25; }
-    wolf.rotation.y = wf; const sc = wolf.scale.x; wolf.position.set(S.wx + Math.sin(wf) * 1.7 * sc, 0, S.wz + Math.cos(wf) * 1.7 * sc);
+    wolf.rotation.y = wf; const sc = wolf.scale.x; wolf.position.set(S.wx + Math.sin(wf) * 1.7 * sc, S.wJump > 0 ? Math.sin(Math.PI * (1 - S.wJump / .42)) * 1.35 : 0, S.wz + Math.cos(wf) * 1.7 * sc);
     const wMoving = vwd > .3 && wsp > 0;
     const bound = S.wState === "charge" || S.wState === "feint" || S.wState === "sidestep" || S.wState === "chase" || S.wState === "drown";     // it bounds when it runs, trots when it paces
     { const fwd = wspd < 40 ? -(mvx * Math.sin(wf) + mvz * Math.cos(wf)) / Math.max(dt, 1e-4) : 0, stride = (bound ? 3.3 : 2.0) * sc;        // speed along its own body: legs turn over exactly as fast as the ground passes
@@ -6046,10 +6058,15 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     { const spillId = id === "torch" || id === "spear" || id === "duel" || (id === "true" && S.wState !== "dead"), wd = Math.hypot(S.x - S.wx, S.z - S.wz);
       const can = playing && spillId && wolf.visible && !S.hide && !S.chained && wd < 15 && wd > 3 && ["edge", "circle", "recover"].includes(S.wState);
       if (can) S.spillT -= dt;
-      if (can && S.spillT <= 0) { const more = id === "true" && S.wolfHp <= 4;      // two wounds into the last fight it spits them out faster, three at a time
-        S.spillT = id === "duel" ? 8 : id === "true" ? (more ? 4.6 : 6.5) : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : more ? 3 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
-        for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n === 3 ? (i - 1) * .75 : n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
+      if (can && S.spillT <= 0) { const more = id === "true" && S.wolfHp <= 4;      // two wounds into the last fight it spits them out faster, four at a time
+        S.spillT = id === "duel" ? 8 : id === "true" ? (more ? 4.6 : 6.5) : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : more ? 4 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
+        for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n === 4 ? (i - 1.5) * .6 : n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
         sfx("whoosh", .7) || noise(.45, .5, 220, true); burst(S.wx, .5, S.wz, 16, 0x2a1418, 3); }
+      // the shadow keeps spitting its own, whatever the wolf is doing
+      if (playing && id === "true" && S.wState !== "dead" && S.sh && S.sh.fade > .6 && S.sh.st === "circle" && !S.hide) { const sd = Math.hypot(S.x - S.sh.x, S.z - S.sh.z);
+        if (sd > 3 && sd < 15 && (S.shSpillT -= dt) <= 0) { S.shSpillT = S.wolfHp <= 4 ? 5.2 : 7; const base = Math.atan2(S.x - S.sh.x, S.z - S.sh.z);
+          for (let i = 0; i < 2; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (i ? .6 : -.6); w.x = S.sh.x + Math.sin(w.a) * 1.2; w.z = S.sh.z + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
+          sfx("whoosh", .6, 1.15) || noise(.45, .4, 260, true); burst(S.sh.x, .5, S.sh.z, 14, 0x7d8490, 3); } }
       const [fcx, fcz] = facing();
       for (const w of wisps) { if (!w.on) continue; w.life -= dt; const dx = S.x - w.x, dz = S.z - w.z, d = Math.hypot(dx, dz) || 1;
         let da = Math.atan2(dx, dz) - w.a; da = Math.atan2(Math.sin(da), Math.cos(da)); w.a += Math.max(-1.3 * dt, Math.min(1.3 * dt, da));
@@ -6062,7 +6079,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
         if (d < .6 && S.inv <= 0) { killWisp(w); hurt(dx, dz, .5); } } }
     if (S.wState === "drown") { const dep = SHORE_Z - S.wz; wolf.position.y = -Math.max(0, Math.min(3.2, dep * .7)); wolf.rotation.x = Math.max(0, Math.min(.6, dep * .2)); if (dep > 4.6) { S.wState = "under"; wolf.visible = false; sfx("wave", .9) || noise(.8, .7, 200); burst(S.wx, .2, S.wz, 30, 0x9fc4e8, 4); } }
     else if (S.emergeT > 0) { if (playing) { S.emergeT -= dt; if (Math.random() < dt * 9) burst(S.wx + (Math.random() - .5) * 1.6, .2, S.wz + (Math.random() - .5) * 1.2, 7, 0x9fc4e8, 3); } wolf.position.y = -3.2 * Math.max(0, S.emergeT / EMERGE); wolf.rotation.x = -.35 * Math.max(0, S.emergeT / EMERGE); }
-    else { wolf.position.y = 0; wolf.rotation.x = 0; }
+    else { const jk = S.wJump > 0 ? Math.sin(Math.PI * (1 - S.wJump / .42)) : 0; wolf.position.y = jk * 1.35; wolf.rotation.x = -jk * .28; }      // off the ground while it springs clear
     if (S.wState === "dead") { S.deadT += dt; const k = Math.min(1, S.deadT / .8); wolf.rotation.z = k * 1.45; wbody.position.y = -k * .2; halos.forEach((h) => h.material.opacity *= 1 - k); }
     underEyes.visible = S.wState === "under"; if (underEyes.visible) { underEyes.position.set(S.wx, -.02, S.wz); underEyes.children.forEach((c, i) => { if (i) c.material.opacity = .6 + .35 * Math.sin(t * 5 + i); }); }
     // first light, the mask, the door
@@ -6119,6 +6136,10 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       roll = e * .38 + (reduceMotion ? 0 : Math.sin(t * .9) * .02);
     }
     const sh = reduceMotion ? 0 : Math.max(0, S.flash - .2) * .6 + (S.mode === "caught" ? Math.max(0, .5 - S.end) * .4 : 0) + (S.knock > 0 ? .25 : 0);
+    let zk = 0;
+    if (S.zm && S.zm.t > 0 && S.mode !== "caught" && !reduceMotion) { const z = S.zm; z.t -= dt; const p = 1 - z.t / z.d, e0 = Math.max(0, Math.min(1, p / .16, (1 - p) / .35)), e = e0 * e0 * (3 - 2 * e0);
+      zk = z.k * e; lx += (z.x - lx) * e * .85; lz += (z.z - lz) * e * .85; cx += (z.x - cx) * e * .3; }
+    if (Math.abs(camera.zoom - (1 + zk)) > .002) { camera.zoom += (1 + zk - camera.zoom) * Math.min(1, dt * 14); camera.updateProjectionMatrix(); }
     const fl = Math.min(1, dt * (S.mode === "caught" ? 7 : 4));
     camera.position.x += (cx - camera.position.x) * fl + (Math.random() - .5) * sh; camera.position.y += (cy - camera.position.y) * fl; camera.position.z += (cz - camera.position.z) * fl;
     camera.lookAt(lx, ly, lz); if (roll) camera.rotateZ(roll);
@@ -6150,7 +6171,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) $("toast").style.opacity = 0; }
   }
   function hurt(dx, dz, amt) {
-    if (S.hide) return; amt = amt || 1;
+    if (S.hide) return; amt = amt || 1; zoomTo(S.x, S.z, amt < 1 ? .14 : .24, .6);
     S.biteT = .5; S.hitStop = .14; S.hitFlash = .4; burst(S.x, 1.2, S.z, 34, 0xff2a1a, 5); clank(); sfx("bite", 1) || noise(.14, 1, 2600);
     S.hp -= amt; S.inv = amt < 1 ? .6 : 1.0; S.knock = amt < 1 ? .12 : .25; const d = Math.hypot(dx, dz) || 1; S.kx = dx / d; S.kz = dz / d; S.flash = .6; sfx("thud", amt < 1 ? .6 : 1) || noise(.5, 1, 700);
     if (navigator.vibrate) try { navigator.vibrate(80); } catch (e) {}
