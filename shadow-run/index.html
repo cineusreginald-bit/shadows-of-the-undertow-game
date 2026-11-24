@@ -5276,7 +5276,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
   const leapArc = new THREE.Points(arcGeo, new THREE.PointsMaterial({ color: 0xffc078, size: .16, map: glowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false })); leapArc.frustumCulled = false; leapArc.visible = false; leapArc.renderOrder = 10; scene.add(leapArc);
   // pieces of the wolf's shadow: they come at him even through the light, and bite half as deep
   const wisps = []; { const dark = new THREE.MeshBasicMaterial({ color: 0x030304 }), pool = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .7, depthWrite: false }), red = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
-    for (let i = 0; i < 6; i++) { const g = new THREE.Group(), pup = new THREE.Group(); const pd = new THREE.Mesh(new THREE.CircleGeometry(.3, 14), pool); pd.rotation.x = -Math.PI / 2; pd.position.y = .04;
+    for (let i = 0; i < 10; i++) { const g = new THREE.Group(), pup = new THREE.Group(); const pd = new THREE.Mesh(new THREE.CircleGeometry(.3, 14), pool); pd.rotation.x = -Math.PI / 2; pd.position.y = .04;
       const body = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), dark); body.scale.set(.95, .85, 1.25); body.position.set(0, .2, -.04); const head = new THREE.Mesh(new THREE.SphereGeometry(.15, 12, 9), dark); head.position.set(0, .33, .2);
       const snout = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), dark); snout.position.set(0, .29, .34); const tail = new THREE.Mesh(new THREE.ConeGeometry(.045, .2, 6), dark); tail.rotation.x = -2.2; tail.position.set(0, .3, -.3);
       pup.add(body, head, snout, tail); for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.055, .15, 5), dark); ear.position.set(sx * .09, .48, .17); ear.rotation.z = -sx * .25; const eye = new THREE.Mesh(new THREE.SphereGeometry(.028, 6, 6), red); eye.position.set(sx * .06, .36, .33);
@@ -5715,7 +5715,7 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
       if (S.chained) {
         S.pulls++; S.pullT = .45; clank(); sfx("chainpull", .8, .9 + S.pulls * .04) || sfx("block", .8, .7); sfx("chain", 1); S.flash = .25; burst(ANCHOR.x, ANCHOR.y, ANCHOR.z, 18, 0xffb060, 3.5);
         if (S.pulls >= 5) {    // it snaps: links fly, sparks, he stumbles back
-          S.chained = false; S.snapT = 0; setGoal(); sfx("impact", .9) || noise(.5, .8, 2600); sfx("chaindrop", 1); setTimeout(() => sfx("chain", .9, .85), 260); clank(); setTimeout(clank, 60);
+          S.chained = false; S.snapT = 0; S.cageT = .5; S.cageN = 0; setGoal(); sfx("impact", .9) || noise(.5, .8, 2600); sfx("chaindrop", 1); setTimeout(() => sfx("chain", .9, .85), 260); clank(); setTimeout(clank, 60);
           burst(ANCHOR.x, ANCHOR.y, ANCHOR.z, 50, 0xffd090, 6); links.forEach((l) => { l.vx = (Math.random() - .5) * 6; l.vy = 2 + Math.random() * 4; l.vz = (Math.random() - .5) * 6 - 2; });
           const [fx, fz] = facing(); S.knock = .25; S.kx = -fx * .5; S.kz = -fz * .5; toast("The chain snaps", 1.6);
         }
@@ -5825,6 +5825,12 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     S.wHitCd = Math.max(0, (S.wHitCd || 0) - dt);
     if (playing) S.wT -= dt; S.dart = Math.max(0, S.dart - dt);
     if (S.mode === "title") { /* hold */ }
+    else if (S.wState === "window" && !S.chained && playing) {      // he is loose: it follows him along the bars, snarling and growling, louder the closer he passes
+      tx = CELL.x1 + 1.1; tz = Math.max(-1.3, Math.min(.1, S.z)); wsp = 5;
+      const nearK = Math.max(0, Math.min(1, 1 - (dist - 2.5) / 7)); S.cageT = (S.cageT || 0) - dt;
+      if (S.cageT <= 0) { S.cageT = 1.5 + Math.random() * .8 - nearK * .6; S.cageN = (S.cageN || 0) + 1; const sn = S.cageN % 2 === 1;
+        sfx(sn ? "snarl" : "growl", .45 + nearK * .55, sn ? 1 : 1.1) || noise(.5, .35 + nearK * .4, 220); if (nearK > .4) S.dart = .45; }
+    }
     else if (S.wState === "window") { tx = CELL.x1 + 1.3 + Math.sin(t * .7) * .4; tz = -.6 + Math.sin(t * .5) * .8; wsp = 1.5; }
     else if (S.wState === "edge") {
       if (!S.hide && S.hasTorch && R <= 0 && S.out > 1.6) { tx = S.x; tz = S.z; wsp = 7.8; }
@@ -6040,8 +6046,9 @@ body.titling .hud, body.titling .prompt, body.titling .controls, body.titling .t
     { const spillId = id === "torch" || id === "spear" || id === "duel" || (id === "true" && S.wState !== "dead"), wd = Math.hypot(S.x - S.wx, S.z - S.wz);
       const can = playing && spillId && wolf.visible && !S.hide && !S.chained && wd < 15 && wd > 3 && ["edge", "circle", "recover"].includes(S.wState);
       if (can) S.spillT -= dt;
-      if (can && S.spillT <= 0) { S.spillT = id === "duel" ? 8 : id === "true" ? 6.5 : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
-        for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
+      if (can && S.spillT <= 0) { const more = id === "true" && S.wolfHp <= 4;      // two wounds into the last fight it spits them out faster, three at a time
+        S.spillT = id === "duel" ? 8 : id === "true" ? (more ? 4.6 : 6.5) : 5 + Math.random() * 1.5; const n = id === "duel" ? 1 : more ? 3 : 2, base = Math.atan2(S.x - S.wx, S.z - S.wz);
+        for (let i = 0; i < n; i++) { const w = wisps.find((q) => !q.on); if (!w) break; w.on = true; w.a = base + (n === 3 ? (i - 1) * .75 : n > 1 ? (i ? .7 : -.7) : 0); w.x = S.wx + Math.sin(w.a) * 1.2; w.z = S.wz + Math.cos(w.a) * 1.2; w.life = 5; w.g.visible = true; }
         sfx("whoosh", .7) || noise(.45, .5, 220, true); burst(S.wx, .5, S.wz, 16, 0x2a1418, 3); }
       const [fcx, fcz] = facing();
       for (const w of wisps) { if (!w.on) continue; w.life -= dt; const dx = S.x - w.x, dz = S.z - w.z, d = Math.hypot(dx, dz) || 1;
